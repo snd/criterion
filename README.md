@@ -12,10 +12,10 @@ make query from object
 query = new Query {x: 7, y: 'foo'}
 
 query.sql()
-# => 'x = ? AND y = ?'
+# 'x = ? AND y = ?'
 
 query.params()
-# => x = [7, 'foo']
+# [7, 'foo']
 ```
 
 make query from string
@@ -24,9 +24,9 @@ make query from string
 query = new Query 'x = ? AND y = ?', 6, 'bar'
 
 query.sql()
-# => 'x = ? AND y = ?'
+# 'x = ? AND y = ?'
 query.params()
-# => x = [6, 'bar']
+# [6, 'bar']
 ```
 
 combine queries
@@ -36,14 +36,14 @@ query1 = new Query {x: 7, y: 'foo'}
 query2 = new Query 'z = ?', true
 
 query1.and(query2).sql()
-# => 'x = ? AND y = ? AND z = ?'
+# 'x = ? AND y = ? AND z = ?'
 query1.and(query2).params()
-# => [7, 'foo', true]
+# [7, 'foo', true]
 
 query2.or(query1).sql()
-# => '(z = ?) OR (x = ? AND y = ?)'
+# '(z = ?) OR (x = ? AND y = ?)'
 query2.or(query1).params()
-# => [true, 7, 'foo']
+# [true, 7, 'foo']
 ```
 
 ### Possible arguments to `new Query`
