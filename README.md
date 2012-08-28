@@ -81,48 +81,63 @@ find where `x < 3` and `y <= 4`
 ```coffeescript
 {x: {$lt: 3}, y: {$lte: 4}}
 # or
+'x < ? AND y <= ?', 3, 4
 ```
 
 find where `x > 3` and `y >= 4`
 
 ```coffeescript
 {x: {$gt: 3}, y: {$gte: 4}}
+# or
+'x > ? AND y >= ?', 3, 4
 ```
 
 find where not (`x > 3` and `y >= 4`)
 
 ```coffeescript
 {$not: {x: {$gt: 3}, y: {$gte: 4}}}
+# or
+'NOT (x > ? AND y >= ?)', 3, 4
 ```
 
 find where `x < NOW()`
 
 ```coffeescript
 {x: {$lt: {$sql: 'NOW()'}}}
+#or
+'x < NOW()'
 ```
 
 find where `x < 7` or `y < 7`
 
 ```coffeescript
 {$or: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
+# or
+'x < ? OR y < ?', 7, 7
 ```
 
 find where not (`x < 7` or `y < 7`)
 
 ```coffeescript
 {$nor: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
+# or
+'NOT (x < ? OR y < ?)', 7, 7
 ```
 
 find where `x < 7` and `x > 10`
 
 ```coffeescript
 {$and: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
+# or
+'x < ? AND x > ?', 7, 10
 ```
 
 find where not (`x < 7` and `x > 10`)
 
 ```coffeescript
 {$nand: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
+# or
+'NOT (x < ? AND x > ?)', 7, 10
 ```
 
 find where `x` is `null`
