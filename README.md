@@ -1,6 +1,6 @@
 # Query language
 
-describe sql-where-conditions in a language similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+describe sql where-conditions in a language similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### Install
 
