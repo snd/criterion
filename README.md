@@ -10,6 +10,7 @@ make query from string
 
 ```coffeescript
 query = new Query 'x = ? AND y = ?', 6, 'bar'
+
 query.sql() # => 'x = ? AND y = ?'
 query.params() # => x = [6, 'bar']
 ```
@@ -17,7 +18,8 @@ query.params() # => x = [6, 'bar']
 make query from object
 
 ```coffeescript
-query = new Query {x: 7, y = 'foo'}
+query = new Query {x: 7, y: 'foo'}
+
 query.sql() # => 'x = ? AND y = ?'
 query.params() # => x = [7, 'foo']
 ```
@@ -25,18 +27,14 @@ query.params() # => x = [7, 'foo']
 combine queries
 
 ```
-query1 = 
-query2 =
+query1 = new Query {x: 7, y: 'foo'}
+query2 = new Query 'z = ?', true
 
-query1.and(query2).sql() # => 
-query2.or(query1).sql() # => 
-query.and
+query1.and(query2).sql() # => 'x = ? AND y = ? AND z = ?'
+query1.and(query2).params() # => [7, 'foo', true]
 
-combinedQuery = query.and query2
-
-query.or query2
-
-query.getSQL()
+query2.or(query1).sql() # => '(z = ?) OR (x = ? AND y = ?)'
+query2.or(query1).params() # => [true, 7, 'foo']
 ```
 
 ### Possible arguments to `new Query`
@@ -44,13 +42,9 @@ query.getSQL()
 find where `x = 7` and `y = 'foo'`
 
 ```coffeescript
-'x = ? AND y = ?', 7, 'foo'
-```
-
-find where `x = 7` and `y = 'foo'`
-
-```coffeescript
 {x: 7, y: 'foo'}
+# or
+'x = ? AND y = ?', 7, 'foo'
 ```
 
 find where `x` is in `[1, 2, 3]`
@@ -69,12 +63,15 @@ find where `x != 3`
 
 ```coffeescript
 {x: {$ne: 3}}
+# or
+'x != ?', 3
 ```
 
 find where `x < 3` and `y <= 4`
 
 ```coffeescript
 {x: {$lt: 3}, y: {$lte: 4}}
+# or
 ```
 
 find where `x > 3` and `y >= 4`
@@ -130,8 +127,6 @@ find where `x` is not `null`
 ```coffeescript
 {$notnull: x}
 ```
-
-TODO complex query
 
 The query language is designed to be intuitive and consistent.
 You should be able to infer all possible combinations.
