@@ -128,16 +128,20 @@ find where not (`x < 7` and `x > 10`)
 find where `x` is `null`
 
 ```coffeescript
-{$null: x}
+{x: {$null: true}}
+# or
+'x IS NULL'
 ```
 
 find where `x` is not `null`
 
 ```coffeescript
-{$notnull: x}
+{x: {$null: false}}
+# or
+'x IS NOT NULL'
 ```
 
 The query language is designed to be intuitive and consistent.
-You should be able to infer all possible combinations.
+You should be able to infer all the other possible combinations.
 
 ### License: MIT
