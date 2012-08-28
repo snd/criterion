@@ -48,6 +48,16 @@ query2.or(query1).params()
 # [true, 7, 'foo']
 ```
 
+negate queries
+
+```coffeescript
+query = new Query {x: 7, y: 'foo'}
+query.negate().sql()
+# 'NOT (x = ? AND y = ?)'
+query.negate().params()
+# [7, 'foo', true]
+```
+
 ### Possible arguments to `new Query`
 
 find where `x = 7` and `y = 'foo'`
