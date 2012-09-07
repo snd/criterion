@@ -8,13 +8,13 @@ describe sql where-criteria similar to the [mongo query language](http://www.mon
 
 ### use
 
-##### require it
+##### require
 
 ```coffeescript
 criterion = require 'criterion'
 ```
 
-##### make from object
+##### create from object
 
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
@@ -25,7 +25,7 @@ c.params()  # [7, 'foo']
 
 criteria are immutable
 
-##### make from string and parameters
+##### create from string and parameters
 
 ```coffeescript
 c = criterion 'x = ? AND y = ?', 6, 'bar'
