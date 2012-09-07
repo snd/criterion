@@ -1,6 +1,6 @@
 # criterion
 
-describe sql where criterions similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+describe sql where criteria similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### Install
 
@@ -26,7 +26,7 @@ c.params()
 # [7, 'foo']
 ```
 
-**NOTE** criterions are immutable
+**NOTE** criteria are immutable
 
 make from string and parameters
 
