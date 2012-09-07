@@ -1,6 +1,6 @@
 # criterion
 
-describe sql where criteria similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+describe sql where-criteria similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### Install
 
@@ -47,10 +47,11 @@ fst.or(snd).sql()       # '(z = ?) OR (x = ? AND y = ?)'
 fst.or(snd).params()    # [true, 7, 'foo']
 ```
 
-##### negate queries
+##### negate
 
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
+
 c.negate().sql()    # 'NOT (x = ? AND y = ?)'
 c.negate().params() # [7, 'foo', true]
 ```
@@ -65,19 +66,19 @@ c.negate().params() # [7, 'foo', true]
 'x = ? AND y = ?', 7, 'foo'
 ```
 
-find where `x` is in `[1, 2, 3]`
+##### find where `x` is in `[1, 2, 3]`
 
 ```coffeescript
 {x: [1, 2, 3]}
 ```
 
-find where `x` is not in `[1, 2, 3]`
+##### find where `x` is not in `[1, 2, 3]`
 
 ```coffeescript
 {x: {$nin: [1, 2, 3]}}
 ```
 
-find where `x != 3`
+##### find where `x != 3`
 
 ```coffeescript
 {x: {$ne: 3}}
@@ -85,7 +86,7 @@ find where `x != 3`
 'x != ?', 3
 ```
 
-find where `x < 3` and `y <= 4`
+##### find where `x < 3` and `y <= 4`
 
 ```coffeescript
 {x: {$lt: 3}, y: {$lte: 4}}
@@ -93,7 +94,7 @@ find where `x < 3` and `y <= 4`
 'x < ? AND y <= ?', 3, 4
 ```
 
-find where `x > 3` and `y >= 4`
+##### find where `x > 3` and `y >= 4`
 
 ```coffeescript
 {x: {$gt: 3}, y: {$gte: 4}}
@@ -101,7 +102,7 @@ find where `x > 3` and `y >= 4`
 'x > ? AND y >= ?', 3, 4
 ```
 
-find where not (`x > 3` and `y >= 4`)
+##### find where not (`x > 3` and `y >= 4`)
 
 ```coffeescript
 {$not: {x: {$gt: 3}, y: {$gte: 4}}}
@@ -109,7 +110,7 @@ find where not (`x > 3` and `y >= 4`)
 'NOT (x > ? AND y >= ?)', 3, 4
 ```
 
-find where `x < NOW()`
+##### find where `x < NOW()`
 
 ```coffeescript
 {x: {$lt: {$sql: 'NOW()'}}}
@@ -117,7 +118,7 @@ find where `x < NOW()`
 'x < NOW()'
 ```
 
-find where `x < 7` or `y < 7`
+##### find where `x < 7` or `y < 7`
 
 ```coffeescript
 {$or: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
@@ -125,7 +126,7 @@ find where `x < 7` or `y < 7`
 'x < ? OR y < ?', 7, 7
 ```
 
-find where not (`x < 7` or `y < 7`)
+##### find where not (`x < 7` or `y < 7`)
 
 ```coffeescript
 {$nor: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
@@ -133,7 +134,7 @@ find where not (`x < 7` or `y < 7`)
 'NOT (x < ? OR y < ?)', 7, 7
 ```
 
-find where `x < 7` and `x > 10`
+##### find where `x < 7` and `x > 10`
 
 ```coffeescript
 {$and: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
@@ -141,7 +142,7 @@ find where `x < 7` and `x > 10`
 'x < ? AND x > ?', 7, 10
 ```
 
-find where not (`x < 7` and `x > 10`)
+##### find where not (`x < 7` and `x > 10`)
 
 ```coffeescript
 {$nand: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
@@ -149,7 +150,7 @@ find where not (`x < 7` and `x > 10`)
 'NOT (x < ? AND x > ?)', 7, 10
 ```
 
-find where `x` is `null`
+##### find where `x` is `null`
 
 ```coffeescript
 {x: {$null: true}}
@@ -157,7 +158,7 @@ find where `x` is `null`
 'x IS NULL'
 ```
 
-find where `x` is not `null`
+##### find where `x` is not `null`
 
 ```coffeescript
 {x: {$null: false}}
