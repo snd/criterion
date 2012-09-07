@@ -19,11 +19,9 @@ make from object
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
 
-c.sql()
-# 'x = ? AND y = ?'
+c.sql()     # 'x = ? AND y = ?'
 
-c.params()
-# [7, 'foo']
+c.params()  # [7, 'foo']
 ```
 
 **NOTE** criteria are immutable
@@ -33,10 +31,8 @@ make from string and parameters
 ```coffeescript
 c = criterion 'x = ? AND y = ?', 6, 'bar'
 
-c.sql()
-# 'x = ? AND y = ?'
-c.params()
-# [6, 'bar']
+c.sql()     # 'x = ? AND y = ?'
+c.params()  # [6, 'bar']
 ```
 
 combine
@@ -45,25 +41,19 @@ combine
 fst = criterion {x: 7, y: 'foo'}
 snd = criterion 'z = ?', true
 
-fst.and(snd).sql()
-# 'x = ? AND y = ? AND z = ?'
-fst.and(snd).params()
-# [7, 'foo', true]
+fst.and(snd).sql()      # 'x = ? AND y = ? AND z = ?'
+fst.and(snd).params()   # [7, 'foo', true]
 
-fst.or(snd).sql()
-# '(z = ?) OR (x = ? AND y = ?)'
-fst.or(snd).params()
-# [true, 7, 'foo']
+fst.or(snd).sql()       # '(z = ?) OR (x = ? AND y = ?)'
+fst.or(snd).params()    # [true, 7, 'foo']
 ```
 
 negate queries
 
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
-c.negate().sql()
-# 'NOT (x = ? AND y = ?)'
-c.negate().params()
-# [7, 'foo', true]
+c.negate().sql()    # 'NOT (x = ? AND y = ?)'
+c.negate().params() # [7, 'foo', true]
 ```
 
 ### Possible arguments to `criterion`
