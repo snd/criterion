@@ -1,64 +1,72 @@
-# Query language
+# criterion
 
-describe sql where-conditions in a language similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+describe sql where criterions similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### Install
 
-    npm install query-language
+    npm install criterion
 
 ### Usage
 
-make query from object
+require it
 
 ```coffeescript
-query = new Query {x: 7, y: 'foo'}
+criterion = require 'criterion'
+```
 
-query.sql()
+make from object
+
+```coffeescript
+c = criterion {x: 7, y: 'foo'}
+
+c.sql()
 # 'x = ? AND y = ?'
 
-query.params()
+c.params()
 # [7, 'foo']
 ```
 
-make query from string
+**NOTE** criterions are immutable
+
+make from string and parameters
 
 ```coffeescript
-query = new Query 'x = ? AND y = ?', 6, 'bar'
+c = criterion 'x = ? AND y = ?', 6, 'bar'
 
-query.sql()
+c.sql()
 # 'x = ? AND y = ?'
-query.params()
+c.params()
 # [6, 'bar']
 ```
 
-combine queries
+combine
 
 ```coffeescript
-query1 = new Query {x: 7, y: 'foo'}
-query2 = new Query 'z = ?', true
+fst = criterion {x: 7, y: 'foo'}
+snd = criterion 'z = ?', true
 
-query1.and(query2).sql()
+fst.and(snd).sql()
 # 'x = ? AND y = ? AND z = ?'
-query1.and(query2).params()
+fst.and(snd).params()
 # [7, 'foo', true]
 
-query2.or(query1).sql()
+fst.or(snd).sql()
 # '(z = ?) OR (x = ? AND y = ?)'
-query2.or(query1).params()
+fst.or(snd).params()
 # [true, 7, 'foo']
 ```
 
 negate queries
 
 ```coffeescript
-query = new Query {x: 7, y: 'foo'}
-query.negate().sql()
+c = criterion {x: 7, y: 'foo'}
+c.negate().sql()
 # 'NOT (x = ? AND y = ?)'
-query.negate().params()
+c.negate().params()
 # [7, 'foo', true]
 ```
 
-### Possible arguments to `new Query`
+### Possible arguments to `criterion`
 
 find where `x = 7` and `y = 'foo'`
 
@@ -168,7 +176,7 @@ find where `x` is not `null`
 'x IS NOT NULL'
 ```
 
-The query language is designed to be intuitive and consistent.
-You should be able to infer all the other possible combinations.
+combine the above at your own will!
+it should work. if it doesn't file an issue.
 
 ### License: MIT
