@@ -2,11 +2,11 @@
 
 describe sql where-criteria similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
-### Install
+### install
 
     npm install criterion
 
-### Usage
+### use
 
 ##### require it
 
@@ -169,4 +169,4 @@ c.negate().params() # [7, 'foo', true]
 combine the above at your own will!
 it should work. if it doesn't file an issue.
 
-### License: MIT
+### license: MIT
