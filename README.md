@@ -23,8 +23,6 @@ c.sql()     # 'x = ? AND y = ?'
 c.params()  # [7, 'foo']
 ```
 
-criteria are immutable
-
 ##### create from string and parameters
 
 ```coffeescript
@@ -52,9 +50,11 @@ fst.or(snd).params()    # [true, 7, 'foo']
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
 
-c.negate().sql()    # 'NOT (x = ? AND y = ?)'
-c.negate().params() # [7, 'foo', true]
+c.not().sql()    # 'NOT (x = ? AND y = ?)'
+c.not().params() # [7, 'foo', true]
 ```
+
+criteria are immutable: `and`, `or` and `not` return new objects.
 
 ### Possible arguments to `criterion`
 
