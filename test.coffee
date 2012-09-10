@@ -143,6 +143,22 @@ module.exports =
 
             test.done()
 
+        '$or with object': (test) ->
+            c = criterion {$or: {x: 7, y: 'foo'}}
+
+            test.equal c.sql(), '(x = ?) OR (y = ?)'
+            test.deepEqual c.params(), [7, 'foo']
+
+            test.done()
+
+        '$or with array': (test) ->
+            c = criterion {$or: [{x: 7}, {y: 'foo'}]}
+
+            test.equal c.sql(), '(x = ?) OR (y = ?)'
+            test.deepEqual c.params(), [7, 'foo']
+
+            test.done()
+
         '$null: true': (test) ->
             c = criterion {x: {$null: true}}
 
