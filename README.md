@@ -52,18 +52,18 @@ snd.or(fst).params()    # [true, 7, 'foo']
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
 
-c.not().sql()    # 'NOT (x = ? AND y = ?)'
-c.not().params() # [7, 'foo', true]
+c.not().sql()           # 'NOT (x = ? AND y = ?)'
+c.not().params()        # [7, 'foo', true]
 
-c.not().not().sql()    # 'x = ? AND y = ?'
-c.not().not().params() # [7, 'foo', true]
+c.not().not().sql()     # 'x = ? AND y = ?'
+c.not().not().params()  # [7, 'foo', true]
 ```
 
 criteria are immutable: `and`, `or` and `not` return new objects.
 
 ### Example arguments to `criterion`
 
-##### find where `x = 7` and `y = 'foo'
+##### find where `x = 7` and `y = 'foo'`
 
 ```coffeescript
 {x: 7, y: 'foo'}
