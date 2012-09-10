@@ -1,6 +1,6 @@
 # criterion
 
-sql where-criteria description language
+sql-where-criteria description language
 
 inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
@@ -61,7 +61,7 @@ c.not().not().params() # [7, 'foo', true]
 
 criteria are immutable: `and`, `or` and `not` return new objects.
 
-### Possible arguments to `criterion`
+### Example arguments to `criterion`
 
 ##### find where `x = 7` and `y = 'foo'
 
@@ -149,7 +149,6 @@ criteria are immutable: `and`, `or` and `not` return new objects.
 'x IS NOT NULL'
 ```
 
-combine the above at your own will!
-it should work. if it doesn't file an issue.
+everything can be combined!
 
 ### license: MIT
