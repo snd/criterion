@@ -1,6 +1,8 @@
 # criterion
 
-describe sql where-criteria similar to the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+sql where-criteria description language
+
+inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### install
 
@@ -14,25 +16,25 @@ describe sql where-criteria similar to the [mongo query language](http://www.mon
 criterion = require 'criterion'
 ```
 
-##### create from object
-
-```coffeescript
-c = criterion {x: 7, y: 'foo'}
-
-c.sql()     # 'x = ? AND y = ?'
-c.params()  # [7, 'foo']
-```
-
 ##### create from string and parameters
 
 ```coffeescript
-c = criterion 'x = ? AND y = ?', 6, 'bar'
+c = criterion 'x = ?', 6
 
-c.sql()     # 'x = ? AND y = ?'
-c.params()  # [6, 'bar']
+c.sql()     # 'x = ?'
+c.params()  # [6]
 ```
 
-##### combine
+##### create from object
+
+```coffeescript
+c = criterion {x: 7}
+
+c.sql()     # 'x = ?'
+c.params()  # [7]
+```
+
+##### `and` and `or`
 
 ```coffeescript
 fst = criterion {x: 7, y: 'foo'}
@@ -41,27 +43,32 @@ snd = criterion 'z = ?', true
 fst.and(snd).sql()      # 'x = ? AND y = ? AND z = ?'
 fst.and(snd).params()   # [7, 'foo', true]
 
-fst.or(snd).sql()       # '(z = ?) OR (x = ? AND y = ?)'
-fst.or(snd).params()    # [true, 7, 'foo']
+snd.or(fst).sql()       # '(z = ?) OR (x = ? AND y = ?)'
+snd.or(fst).params()    # [true, 7, 'foo']
 ```
 
-##### negate
+##### `not`
 
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
 
 c.not().sql()    # 'NOT (x = ? AND y = ?)'
 c.not().params() # [7, 'foo', true]
+
+c.not().not().sql()    # 'x = ? AND y = ?'
+c.not().not().params() # [7, 'foo', true]
 ```
 
 criteria are immutable: `and`, `or` and `not` return new objects.
 
 ### Possible arguments to `criterion`
 
-##### find where `x = 7` and `y = 'foo'`
+##### find where `x = 7` and `y = 'foo'
 
 ```coffeescript
 {x: 7, y: 'foo'}
+# or
+[{x: 7}, {y: 'foo'}]
 # or
 'x = ? AND y = ?', 7, 'foo'
 ```
@@ -113,41 +120,17 @@ criteria are immutable: `and`, `or` and `not` return new objects.
 ##### find where `x < NOW()`
 
 ```coffeescript
-{x: {$lt: {$sql: 'NOW()'}}}
-#or
 'x < NOW()'
 ```
 
-##### find where `x < 7` or `y < 7`
+##### find where `x = 7` or `y = 6`
 
 ```coffeescript
-{$or: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
+{$or: [{x: 7}, {y: 6}]}
 # or
-'x < ? OR y < ?', 7, 7
-```
-
-##### find where not (`x < 7` or `y < 7`)
-
-```coffeescript
-{$nor: [{x: {$lt: 7}}, {y: {$lt: 7}}]}
+{$or: {x: 7, y: 6}}
 # or
-'NOT (x < ? OR y < ?)', 7, 7
-```
-
-##### find where `x < 7` and `x > 10`
-
-```coffeescript
-{$and: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
-# or
-'x < ? AND x > ?', 7, 10
-```
-
-##### find where not (`x < 7` and `x > 10`)
-
-```coffeescript
-{$nand: [{x: {$lt: 7}}, {x: {$gt: 10}}]}
-# or
-'NOT (x < ? AND x > ?)', 7, 10
+'x = ? OR y = ?', 7, 6
 ```
 
 ##### find where `x` is `null`
