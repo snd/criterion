@@ -119,8 +119,7 @@ module.exports = construct = (first, rest...) ->
                 but #{type} given
             """
 
-        if type is 'string'
-            return new Sql first, rest
+        return new Sql first, rest if type is 'string'
 
         if Array.isArray first
             if first.length is 0
@@ -133,7 +132,6 @@ module.exports = construct = (first, rest...) ->
             throw new Error 'empty criterion'
 
         if 1 is keyCount
-
             key = Object.keys(first)[0]
             value = first[key]
 
@@ -166,4 +164,5 @@ module.exports = construct = (first, rest...) ->
                         else new Eq key, value
                     else new Eq key, value
 
+        # break it down if there is more than one key
         new And arrayify(first).map construct
