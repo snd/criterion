@@ -155,6 +155,6 @@ criteria are immutable: `and`, `or` and `not` return new objects.
 'x IS NOT NULL'
 ```
 
-everything can be combined!
+all query parts can be composed at will!
 
 ### license: MIT
