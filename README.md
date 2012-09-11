@@ -123,6 +123,12 @@ criteria are immutable: `and`, `or` and `not` return new objects.
 'x < NOW()'
 ```
 
+##### find where `x` is between `5` and `10`
+
+```coffeescript
+'x BETWEEN ? AND ?', 5, 10
+```
+
 ##### find where `x = 7` or `y = 6`
 
 ```coffeescript
