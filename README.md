@@ -1,6 +1,7 @@
 # criterion
 
 sql-where-criteria description language
+[![Build Status](https://travis-ci.org/snd/criterion.png)](https://travis-ci.org/snd/criterion)
 
 inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
