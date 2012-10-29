@@ -61,7 +61,7 @@ c.not().not().params()  # [7, 'foo', true]
 
 criteria are immutable: `and`, `or` and `not` return new objects.
 
-### example arguments to `criterion`
+### possible function arguments to `criterion`
 
 ##### find where `x = 7` and `y = 'foo'`
 
