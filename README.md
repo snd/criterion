@@ -31,7 +31,7 @@ c.params()  # [6]
 ```coffeescript
 c = criterion {x: 7}
 
-c.sql()     # '(x = ?)'
+c.sql()     # 'x = ?'
 c.params()  # [7]
 ```
 
