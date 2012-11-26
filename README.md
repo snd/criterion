@@ -31,7 +31,7 @@ c.params()  # [6]
 ```coffeescript
 c = criterion {x: 7}
 
-c.sql()     # 'x = ?'
+c.sql()     # '(x = ?)'
 c.params()  # [7]
 ```
 
@@ -41,7 +41,7 @@ c.params()  # [7]
 fst = criterion {x: 7, y: 'foo'}
 snd = criterion 'z = ?', true
 
-fst.and(snd).sql()      # 'x = ? AND y = ? AND z = ?'
+fst.and(snd).sql()      # '(x = ?) AND (y = ?) AND (z = ?)'
 fst.and(snd).params()   # [7, 'foo', true]
 
 snd.or(fst).sql()       # '(z = ?) OR (x = ? AND y = ?)'
@@ -53,10 +53,10 @@ snd.or(fst).params()    # [true, 7, 'foo']
 ```coffeescript
 c = criterion {x: 7, y: 'foo'}
 
-c.not().sql()           # 'NOT (x = ? AND y = ?)'
+c.not().sql()           # 'NOT ((x = ?) AND (y = ?))'
 c.not().params()        # [7, 'foo', true]
 
-c.not().not().sql()     # 'x = ? AND y = ?'
+c.not().not().sql()     # '(x = ?) AND (y = ?)'
 c.not().not().params()  # [7, 'foo', true]
 ```
 
