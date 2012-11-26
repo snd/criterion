@@ -1,6 +1,6 @@
 {
     "name": "criterion",
-    "description": "sql-where-criteria description language",
+    "description": "criterion can describe sql where-conditions as objects for nodejs",
     "author": "Maximilian Krüger <kruemaxi@googlemail.com> (http://github.com/snd)",
     "version": "0.2.0",
     "repository": {
