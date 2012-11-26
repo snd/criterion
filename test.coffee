@@ -24,7 +24,7 @@ module.exports =
 
         fstAndSnd = fst.and snd
 
-        test.equal fstAndSnd.sql(), 'x = ? AND y = ? AND z = ?'
+        test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
         test.deepEqual fstAndSnd.params(), [7, 'foo', true]
 
         test.done()
@@ -35,7 +35,7 @@ module.exports =
 
         sndOrFst = snd.or fst
 
-        test.equal sndOrFst.sql(), '(z = ?) OR (x = ? AND y = ?)'
+        test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
         test.deepEqual sndOrFst.params(), [true, 7, 'foo']
 
         test.done()
@@ -44,13 +44,13 @@ module.exports =
 
         c = criterion {x: 7, y: 'foo'}
 
-        test.equal c.not().sql(), 'NOT (x = ? AND y = ?)'
+        test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
         test.deepEqual c.not().params(), [7, 'foo']
 
-        test.equal c.not().not().sql(), 'x = ? AND y = ?'
+        test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
         test.deepEqual c.not().not().params(), [7, 'foo']
 
-        test.equal c.not().not().not().sql(), 'NOT (x = ? AND y = ?)'
+        test.equal c.not().not().not().sql(), 'NOT ((x = ?) AND (y = ?))'
         test.deepEqual c.not().not().not().params(), [7, 'foo']
 
         test.done()
@@ -82,7 +82,7 @@ module.exports =
         'and with object': (test) ->
             c = criterion {x: 7, y: 'foo'}
 
-            test.equal c.sql(), 'x = ? AND y = ?'
+            test.equal c.sql(), '(x = ?) AND (y = ?)'
             test.deepEqual c.params(), [7, 'foo']
 
             test.done()
@@ -90,7 +90,7 @@ module.exports =
         'and with array': (test) ->
             c = criterion [{x: 7}, {y: 'foo'}]
 
-            test.equal c.sql(), 'x = ? AND y = ?'
+            test.equal c.sql(), '(x = ?) AND (y = ?)'
             test.deepEqual c.params(), [7, 'foo']
 
             test.done()
@@ -122,7 +122,7 @@ module.exports =
         '$lt and $lte': (test) ->
             c = criterion {x: {$lt: 3}, y: {$lte: 4}}
 
-            test.equal c.sql(), 'x < ? AND y <= ?'
+            test.equal c.sql(), '(x < ?) AND (y <= ?)'
             test.deepEqual c.params(), [3, 4]
 
             test.done()
@@ -130,7 +130,7 @@ module.exports =
         '$gt and $gte': (test) ->
             c = criterion {x: {$gt: 3}, y: {$gte: 4}}
 
-            test.equal c.sql(), 'x > ? AND y >= ?'
+            test.equal c.sql(), '(x > ?) AND (y >= ?)'
             test.deepEqual c.params(), [3, 4]
 
             test.done()
@@ -138,7 +138,7 @@ module.exports =
         '$not': (test) ->
             c = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
 
-            test.equal c.sql(), 'NOT (x > ? AND y >= ?)'
+            test.equal c.sql(), 'NOT ((x > ?) AND (y >= ?))'
             test.deepEqual c.params(), [3, 4]
 
             test.done()
@@ -172,5 +172,17 @@ module.exports =
 
             test.equal c.sql(), 'x IS NOT NULL'
             test.deepEqual c.params(), []
+
+            test.done()
+
+        '$or inside $and is wrapped in parentheses': (test) ->
+            c = criterion {
+                username: "user"
+                password: "hash"
+                $or: [{active: 1}, active: {$null: true}]
+            }
+
+            test.equal c.sql(), '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
+            test.deepEqual c.params(), ["user", "hash", 1]
 
             test.done()

@@ -80,7 +80,8 @@ And = class extends Criterion
 
     constructor: (@_criteria) ->
 
-    sql: -> @_criteria.map((c) -> c.sql()).join ' AND '
+    sql: ->
+        @_criteria.map((c) -> "(#{c.sql()})").join ' AND '
 
     params: ->
         params = []
@@ -91,7 +92,8 @@ Or = class extends Criterion
 
     constructor: (@_criteria) ->
 
-    sql: -> @_criteria.map((c) -> "(#{c.sql()})").join ' OR '
+    sql: ->
+        @_criteria.map((c) -> "(#{c.sql()})").join ' OR '
 
     params: ->
         params = []
