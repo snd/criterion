@@ -1,7 +1,8 @@
 # criterion
 
-criterion can describe sql where-conditions as objects for nodejs
 [![Build Status](https://travis-ci.org/snd/criterion.png)](https://travis-ci.org/snd/criterion)
+
+criterion can describe sql where-conditions as objects for nodejs
 
 inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
