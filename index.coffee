@@ -1,104 +1,59 @@
-Criterion = class
-    not: -> new Not @
-    and: (other) -> new And [@, other]
-    or: (other) -> new Or [@, other]
+beget = require 'beget'
 
-Sql = class extends Criterion
-    constructor: (@_sql, @_params = []) ->
+criterionPrototype =
+    not: -> newNot @
+    and: (other) -> newAnd [@, other]
+    or: (other) -> newOr [@, other]
+
+sqlPrototype = beget criterionPrototype,
     sql: -> @_sql
     params: -> @_params
+newSql = (sql, params) -> beget sqlPrototype, {_sql: sql, _params: params}
 
-Eq = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} = ?"
+comparePrototype = beget criterionPrototype,
+    sql: -> "#{@_k} #{@_op} ?"
     params: -> [@_v]
+newEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '='}
+newNotEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '!='}
+newLowerThan = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '<'}
+newLowerThanEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '<='}
+newGreaterThan = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '>'}
+newGreaterThanEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '>='}
 
-Ne = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} != ?"
-    params: -> [@_v]
-
-Lt = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} < ?"
-    params: -> [@_v]
-
-Lte = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} <= ?"
-    params: -> [@_v]
-
-Gt = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} > ?"
-    params: -> [@_v]
-
-Gte = class extends Criterion
-    constructor: (@_k, @_v) ->
-    sql: -> "#{@_k} >= ?"
-    params: -> [@_v]
-
-Null = class extends Criterion
-    constructor: (@_k, @_isNull) ->
+nullPrototype = beget criterionPrototype,
     sql: -> "#{@_k} IS #{if @_isNull then '' else 'NOT '}NULL"
     params: -> []
+newNull = (k, isNull) -> beget nullPrototype, {_k: k, _isNull: isNull}
 
-Not = class extends Criterion
-
-    constructor: (@_criterion) ->
-
+notPrototype = beget criterionPrototype,
     sql: ->
-        if @_criterion instanceof Not
-            # remove double negation
+        # remove double negation
+        if notPrototype.isPrototypeOf @_criterion
             @_criterion._criterion.sql()
-        else
-            "NOT (#{@_criterion.sql()})"
-
+        else "NOT (#{@_criterion.sql()})"
     params: -> @_criterion.params()
+newNot = (criterion) -> beget notPrototype, {_criterion: criterion}
 
-In = class extends Criterion
-    constructor: (@_k, @_vs) ->
-
+inPrototype = beget criterionPrototype,
     sql: ->
         questionMarks = []
         @_vs.forEach -> questionMarks.push '?'
-        "#{@_k} IN (#{questionMarks.join ', '})"
-
+        "#{@_k} #{@_op} (#{questionMarks.join ', '})"
     params: -> @_vs
+newIn = (k, vs) -> beget inPrototype, {_k: k, _vs: vs, _op: 'IN'}
+newNotIn = (k, vs) -> beget inPrototype, {_k: k, _vs: vs, _op: 'NOT IN'}
 
-Nin = class extends Criterion
-    constructor: (@_k, @_vs) ->
-
+combinePrototype = beget criterionPrototype,
     sql: ->
-        questionMarks = []
-        @_vs.forEach -> questionMarks.push '?'
-        "#{@_k} NOT IN (#{questionMarks.join ', '})"
-
-    params: -> @_vs
-
-And = class extends Criterion
-
-    constructor: (@_criteria) ->
-
-    sql: ->
-        @_criteria.map((c) -> "(#{c.sql()})").join ' AND '
+        @_criteria.map((c) -> "(#{c.sql()})").join " #{@_op} "
 
     params: ->
         params = []
         @_criteria.forEach (c) -> params = params.concat c.params()
         params
 
-Or = class extends Criterion
-
-    constructor: (@_criteria) ->
-
-    sql: ->
-        @_criteria.map((c) -> "(#{c.sql()})").join ' OR '
-
-    params: ->
-        params = []
-        @_criteria.forEach (c) -> params = params.concat c.params()
-        params
+newAnd = (criteria) -> beget combinePrototype, {_criteria: criteria, _op: 'AND'}
+newOr = (criteria) -> beget combinePrototype, {_criteria: criteria, _op: 'OR'}
 
 arrayify = (thing) ->
     return thing if Array.isArray thing
@@ -111,41 +66,52 @@ arrayify = (thing) ->
             array.push obj
     array
 
-# recursively construct the object graph
+# recursively construct the object graph of the criterion
 
-module.exports = construct = (first, rest...) ->
+module.exports = (first, rest...) ->
         type = typeof first
-        unless type in ['string', 'object']
+        unless 'string' is type or 'object' is type
             throw new Error """
                 string or object expected as first argument
                 but #{type} given
             """
 
-        return new Sql first, rest if type is 'string'
+        return newSql first, rest if type is 'string'
 
         if Array.isArray first
             if first.length is 0
                 throw new Error 'empty criterion'
-            return new And first.map construct
+            return newAnd first.map module.exports
+
+        switch Object.keys(first).length
+            when 0 then throw new Error 'empty criterion'
+            when 1
+            else
+                # break it down if there is more than one key
+                newAnd arrayify(first).map module.exports
 
         keyCount = Object.keys(first).length
 
         if 0 is keyCount
             throw new Error 'empty criterion'
 
-        if 1 is keyCount
+        if keyCount > 1
+            # break it down if there is more than one key
+            return newAnd arrayify(first).map module.exports
+
+        else
             key = Object.keys(first)[0]
             value = first[key]
 
             return switch key
-                when '$or' then new Or arrayify(value).map construct
-                when '$not' then new Not construct value
+                when '$or' then newOr arrayify(value).map module.exports
+                when '$not' then newNot module.exports value
                 else
                     if (typeof value) is 'object'
                         if Array.isArray value
                             if value.length is 0
                                 throw Error 'in with empty array'
-                            return new In key, value
+                            return newIn key, value
                         keys = Object.keys value
 
                         if keys.length is 1 and 0 is keys[0].indexOf '$'
@@ -155,16 +121,13 @@ module.exports = construct = (first, rest...) ->
                                 when '$nin'
                                     if innerValue.length is 0
                                         throw Error '$nin with empty array'
-                                    new Nin key, innerValue
-                                when '$lt' then new Lt key, innerValue
-                                when '$lte' then new Lte key, innerValue
-                                when '$gt' then new Gt key, innerValue
-                                when '$gte' then new Gte key, innerValue
-                                when '$ne' then new Ne key, innerValue
-                                when '$null' then new Null key, innerValue
+                                    newNotIn key, innerValue
+                                when '$lt' then newLowerThan key, innerValue
+                                when '$lte' then newLowerThanEqual key, innerValue
+                                when '$gt' then newGreaterThan key, innerValue
+                                when '$gte' then newGreaterThanEqual key, innerValue
+                                when '$ne' then newNotEqual key, innerValue
+                                when '$null' then newNull key, innerValue
                                 else throw new Error "unknown modifier: #{modifier}"
-                        else new Eq key, value
-                    else new Eq key, value
-
-        # break it down if there is more than one key
-        new And arrayify(first).map construct
+                        else newEqual key, value
+                    else newEqual key, value
