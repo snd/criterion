@@ -1,6 +1,6 @@
 {
     "name": "criterion",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "criterion can describe sql where-conditions as objects for nodejs",
     "homepage": "http://github.com/snd/criterion",
     "author": {
