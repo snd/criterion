@@ -47,6 +47,12 @@ module.exports =
         test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
         test.deepEqual c.not().params(), [7, 'foo']
 
+        test.done()
+
+    'double negation is removed': (test) ->
+
+        c = criterion {x: 7, y: 'foo'}
+
         test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
         test.deepEqual c.not().not().params(), [7, 'foo']
 
