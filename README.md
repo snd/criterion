@@ -4,7 +4,7 @@
 
 criterion can describe sql where-conditions as objects for nodejs
 
-inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+criterion is inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
 ### install
 
