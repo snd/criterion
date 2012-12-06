@@ -1,11 +1,27 @@
 {
     "name": "criterion",
-    "description": "criterion can describe sql where-conditions as objects for nodejs",
-    "author": "Maximilian Krüger <kruemaxi@googlemail.com> (http://github.com/snd)",
     "version": "0.2.0",
+    "description": "criterion can describe sql where-conditions as objects for nodejs",
+    "homepage": "http://github.com/snd/criterion",
+    "author": {
+        "name": "Maximilian Krüger",
+        "email": "kruemaxi@gmail.com",
+        "url": "http://github.com/snd"
+    },
+    "bugs": {
+        "url": "http://github.com/snd/criterion/issues",
+        "email": "kruemaxi@gmail.com"
+    },
     "repository": {
         "type": "git",
         "url": "git://github.com/snd/criterion.git"
+    },
+    "licenses": {
+        "type": "MIT",
+        "url": "git://github.com/snd/criterion/LICENSE"
+    },
+    "engines": {
+        "node": ">=0.8.5"
     },
     "dependencies": {
         "coffee-script": "1.4.0"
