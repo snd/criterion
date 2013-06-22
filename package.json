@@ -29,7 +29,7 @@
         "coffee-script": "1.6.3",
         "nodeunit": "0.8"
     },
-    "main": "src/criterion",
+    "main": "src/factory",
     "scripts": {
         "prepublish": "coffee --bare --compile --output src src/*.coffee",
         "postpublish": "rm src/*.js",
