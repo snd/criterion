@@ -1,18 +1,39 @@
-beget = require 'beget'
+{beget, arrayify} = require './util'
+
+# base
+# ----
 
 criterionPrototype =
     not: -> newNot @
     and: (other) -> newAnd [@, other]
     or: (other) -> newOr [@, other]
 
-sqlPrototype = beget criterionPrototype,
+# raw sql
+# -------
+
+rawSqlPrototype = beget criterionPrototype,
     sql: -> @_sql
     params: -> @_params
-newSql = (sql, params) -> beget sqlPrototype, {_sql: sql, _params: params}
+
+newRawSql = (sql, params) -> beget rawSqlPrototype, {_sql: sql, _params: params}
+
+# comparison
+# ----------
 
 comparePrototype = beget criterionPrototype,
-    sql: -> "#{@_k} #{@_op} ?"
-    params: -> [@_v]
+    sql: ->
+        if 'function' is typeof @_v.sql
+            "#{@_k} #{@_op} #{@_v.sql()}"
+        else
+            "#{@_k} #{@_op} ?"
+    params: ->
+        if 'function' is typeof @_v.sql
+            if 'function' is typeof @_v.params
+                @_v.params()
+            else
+                []
+        else
+            [@_v]
 newEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '='}
 newNotEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '!='}
 newLowerThan = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '<'}
@@ -20,19 +41,34 @@ newLowerThanEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '<='}
 newGreaterThan = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '>'}
 newGreaterThanEqual = (k, v) -> beget comparePrototype, {_k: k, _v: v, _op: '>='}
 
+# null
+# ----
+
 nullPrototype = beget criterionPrototype,
     sql: -> "#{@_k} IS #{if @_isNull then '' else 'NOT '}NULL"
     params: -> []
 newNull = (k, isNull) -> beget nullPrototype, {_k: k, _isNull: isNull}
 
+# negation
+# --------
+
 notPrototype = beget criterionPrototype,
+    innerCriterion: -> @_criterion._criterion
     sql: ->
         # remove double negation
-        if notPrototype.isPrototypeOf @_criterion
-            @_criterion._criterion.sql()
+        if isNotCriterion @_criterion
+            @innerCriterion().sql()
         else "NOT (#{@_criterion.sql()})"
+        # TODO handle the case where there is no sql coming from the inner criterion
     params: -> @_criterion.params()
+
+isNotCriterion = (c) ->
+    notPrototype.isPrototypeOf c
+
 newNot = (criterion) -> beget notPrototype, {_criterion: criterion}
+
+# in
+# --
 
 inPrototype = beget criterionPrototype,
     sql: ->
@@ -42,6 +78,9 @@ inPrototype = beget criterionPrototype,
     params: -> @_vs
 newIn = (k, vs) -> beget inPrototype, {_k: k, _vs: vs, _op: 'IN'}
 newNotIn = (k, vs) -> beget inPrototype, {_k: k, _vs: vs, _op: 'NOT IN'}
+
+# combination
+# -----------
 
 combinePrototype = beget criterionPrototype,
     sql: ->
@@ -55,20 +94,9 @@ combinePrototype = beget criterionPrototype,
 newAnd = (criteria) -> beget combinePrototype, {_criteria: criteria, _op: 'AND'}
 newOr = (criteria) -> beget combinePrototype, {_criteria: criteria, _op: 'OR'}
 
-arrayify = (thing) ->
-    return thing if Array.isArray thing
-
-    array = []
-    for k, v of thing
-        do (k, v) ->
-            obj = {}
-            obj[k] = v
-            array.push obj
-    array
-
 # recursively construct the object graph of the criterion
 
-module.exports = (first, rest...) ->
+module.exports = criterion = (first, rest...) ->
         type = typeof first
         unless 'string' is type or 'object' is type
             throw new Error """
@@ -76,19 +104,19 @@ module.exports = (first, rest...) ->
                 but #{type} given
             """
 
-        return newSql first, rest if type is 'string'
+        return newRawSql first, rest if type is 'string'
 
         if Array.isArray first
             if first.length is 0
                 throw new Error 'empty criterion'
-            return newAnd first.map module.exports
+            return newAnd first.map criterion
 
         switch Object.keys(first).length
             when 0 then throw new Error 'empty criterion'
             when 1
             else
                 # break it down if there is more than one key
-                newAnd arrayify(first).map module.exports
+                newAnd arrayify(first).map criterion
 
         keyCount = Object.keys(first).length
 
@@ -97,15 +125,15 @@ module.exports = (first, rest...) ->
 
         if keyCount > 1
             # break it down if there is more than one key
-            return newAnd arrayify(first).map module.exports
+            return newAnd arrayify(first).map criterion
 
         else
             key = Object.keys(first)[0]
             value = first[key]
 
             return switch key
-                when '$or' then newOr arrayify(value).map module.exports
-                when '$not' then newNot module.exports value
+                when '$or' then newOr arrayify(value).map criterion
+                when '$not' then newNot criterion value
                 else
                     if (typeof value) is 'object'
                         if Array.isArray value
