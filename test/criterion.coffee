@@ -1,4 +1,4 @@
-criterion = require './index'
+criterion = require '../src/criterion'
 
 module.exports =
 
@@ -125,11 +125,27 @@ module.exports =
 
             test.done()
 
+        '$ne with criterion argument': (test) ->
+            c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
+
+            test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
+            test.deepEqual c.params(), ['password', 'bf', 4]
+
+            test.done()
+
         '$lt and $lte': (test) ->
             c = criterion {x: {$lt: 3}, y: {$lte: 4}}
 
             test.equal c.sql(), '(x < ?) AND (y <= ?)'
             test.deepEqual c.params(), [3, 4]
+
+            test.done()
+
+        '$lt with criterion argument': (test) ->
+            c = criterion {x: {$lt: criterion('NOW()')}}
+
+            test.equal c.sql(), 'x < NOW()'
+            test.deepEqual c.params(), []
 
             test.done()
 
