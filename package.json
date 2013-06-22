@@ -1,6 +1,6 @@
 {
     "name": "criterion",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "criterion can describe sql where-conditions as objects for nodejs",
     "homepage": "http://github.com/snd/criterion",
     "author": {
@@ -24,10 +24,17 @@
         "node": ">=0.8.5"
     },
     "dependencies": {
-        "coffee-script": "1.4.0",
-        "beget": "1.0.0"
     },
     "devDependencies": {
-        "nodeunit": "0.7.4"
+        "coffee-script": "1.6.3",
+        "nodeunit": "0.8"
+    },
+    "main": "src/criterion",
+    "scripts": {
+        "prepublish": "coffee --bare --compile --output src src/*.coffee",
+        "postpublish": "rm src/*.js",
+        "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
+        "posttest": "rm src/*.js && rm test/*.js",
+        "test": "nodeunit test/*.js"
     }
 }
