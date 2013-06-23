@@ -9,7 +9,7 @@ criterion is inspired by the [mongo query language](http://www.mongodb.org/displ
 
 [mohair](https://github.com/snd/mohair) uses criterion.
 the arguments to mohairs `where()` method are **exactly** the same as the arguments to the function exported by criterion.
-mohair is an sql builder which does a lot more than criterion. [go check it out.](https://github.com/snd/mohair)
+mohair is an sql builder which does a lot more than criterion: [go check it out.](https://github.com/snd/mohair)
 
 ### install
 
