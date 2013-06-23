@@ -6,6 +6,7 @@ constructors = require './constructors'
 module.exports = factory = (first, rest...) ->
     type = typeof first
 
+    # invalid arguments?
     unless 'string' is type or 'object' is type
         throw new Error """
             string or object expected as first argument
@@ -15,6 +16,7 @@ module.exports = factory = (first, rest...) ->
     # raw sql with optional bindings?
     return constructors.raw first, rest if type is 'string'
 
+    # array of query objects?
     if Array.isArray first
         if first.length is 0
             throw new Error 'empty criterion'
@@ -25,12 +27,16 @@ module.exports = factory = (first, rest...) ->
     if 0 is keyCount
         throw new Error 'empty criterion'
 
+    # if there is more than one key in the query object
+    # cut it up into objects with one key and and them together
     if keyCount > 1
-        # break it down if there is more than one key
         return constructors.and arrayify(first).map factory
 
     key = Object.keys(first)[0]
     value = first[key]
+
+    unless value?
+        throw new Error "value undefined or null for key #{key}"
 
     if key is '$or'
         return constructors.or arrayify(value).map factory
@@ -41,13 +47,13 @@ module.exports = factory = (first, rest...) ->
     unless 'object' is typeof value
         return constructors.equal key, value
 
+    # from here on value is an object
+
+    # array query?
     if Array.isArray value
         if value.length is 0
             throw Error 'in with empty array'
         return constructors.in key, value
-
-    unless value?
-        throw new Error "value undefined or null for key #{key}"
 
     keys = Object.keys value
 
@@ -70,4 +76,5 @@ module.exports = factory = (first, rest...) ->
             when '$null' then constructors.null key, innerValue
             else throw new Error "unknown modifier: #{modifier}"
     else
+        # handle other inner objects like dates
         constructors.equal key, value
