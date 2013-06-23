@@ -19,7 +19,7 @@ npm install criterion
 
 ### use
 
-require it:
+require:
 
 ```javascript
 var criterion = require('criterion');
