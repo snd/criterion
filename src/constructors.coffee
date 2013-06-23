@@ -1,4 +1,4 @@
-{beget} = require './util'
+{beget, isRaw} = require './util'
 
 prototypes = {}
 
@@ -27,12 +27,12 @@ constructors.raw = (sql, params) ->
 
 prototypes.comparison = beget prototypes.base,
     sql: ->
-        if 'function' is typeof @_v.sql
+        if isRaw @_v
             "#{@_k} #{@_op} #{@_v.sql()}"
         else
             "#{@_k} #{@_op} ?"
     params: ->
-        if 'function' is typeof @_v.sql
+        if isRaw @_v
             if 'function' is typeof @_v.params
                 @_v.params()
             else

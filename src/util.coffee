@@ -24,3 +24,6 @@ module.exports.arrayify = (thing) ->
             obj[k] = v
             array.push obj
     array
+
+module.exports.isRaw = (value) ->
+    value? and 'function' is typeof value.sql
