@@ -117,6 +117,8 @@ var c = criterion('x = ? AND y = ?', 7, 'a');
 
 ```javascript
 var c = criterion({$or: [{x: 7}, {y: 6}]});
+c.sql();        // => 'x = ? OR y = ?'
+c.params();     // => [7, 6]
 ```
 or
 ```javascript
