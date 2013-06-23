@@ -55,7 +55,7 @@ be used in place of any value in a query object.
 this allows you to mix query objects with arbitrary sql:
 
 ```javascript
-var c = criterion({x: {$ne: criterion('LOG(y, ?'), 4)}});
+var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 c.sql();        // => 'x != LOG(y, ?)'
 c.params();     // => [4]
 ```
@@ -188,7 +188,7 @@ c.params();     // => []
 ###### find where `x != LOG(y, 4)`
 
 ```javascript
-var c = criterion({x: {$ne: criterion('LOG(y, ?'), 4)}});
+var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 c.sql();        // => 'x != LOG(y, ?)'
 c.params();     // => [4]
 ```
