@@ -34,8 +34,7 @@ a query object describes an sql-where-condition.
 var c = criterion({x: 7, y: 8});
 ```
 
-criterion returns an object.
-sql and a list of parameter bindings can be generated from the object:
+sql and a list of parameter bindings can be generated from the object returned by criterion:
 
 ```javascript
 c.sql();        // => 'x = ? AND y = ?'
@@ -51,8 +50,8 @@ c.sql();        // => 'x = ? AND y = ?'
 c.params();     // => [7, 8]
 ```
 
-any criterion and any other object that responds to a `sql` and optionally a `params` method can
-be used in place of any parameter binding.
+any criterion and any other object that responds to a `sql()` and optionally a `params()` method can
+be used in place of any value in a query object.
 this allows you to mix query objects with arbitrary sql:
 
 ```javascript
