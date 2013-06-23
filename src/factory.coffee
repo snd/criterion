@@ -46,12 +46,17 @@ module.exports = factory = (first, rest...) ->
             throw Error 'in with empty array'
         return constructors.in key, value
 
+    unless value?
+        throw new Error "value undefined or null for key #{key}"
+
     keys = Object.keys value
 
     modifier = keys[0]
 
     if keys.length is 1 and 0 is modifier.indexOf '$'
         innerValue = value[modifier]
+        unless innerValue?
+            throw new Error "value undefined or null for key #{key} and modifier #{modifier}"
         switch modifier
             when '$nin'
                 if innerValue.length is 0
@@ -64,4 +69,5 @@ module.exports = factory = (first, rest...) ->
             when '$ne' then constructors.notEqual key, innerValue
             when '$null' then constructors.null key, innerValue
             else throw new Error "unknown modifier: #{modifier}"
-    else constructors.equal key, value
+    else
+        constructors.equal key, value

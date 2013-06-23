@@ -73,6 +73,16 @@ module.exports =
 
             test.done()
 
+        'null value with modifier': (test) ->
+            test.throws -> criterion {x: {$lt: null}}
+
+            test.done()
+
+        'null value without modifier': (test) ->
+            test.throws -> criterion {x: null}
+
+            test.done()
+
         'in with empty array': (test) ->
             test.throws -> criterion {x: []}
 
