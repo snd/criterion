@@ -135,6 +135,14 @@ module.exports =
 
             test.done()
 
+        'equality with criterion argument': (test) ->
+            c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
+
+            test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
+            test.deepEqual c.params(), ['password', 'bf', 4]
+
+            test.done()
+
         '$ne with criterion argument': (test) ->
             c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
