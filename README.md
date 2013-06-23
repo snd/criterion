@@ -2,161 +2,253 @@
 
 [![Build Status](https://travis-ci.org/snd/criterion.png)](https://travis-ci.org/snd/criterion)
 
-criterion can describe sql where-conditions as objects for nodejs
+criterion describes sql-where-conditions as objects which can be combined
+and manipulated.
 
 criterion is inspired by the [mongo query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
 
+[mohair](https://github.com/snd/mohair) uses criterion.
+the arguments to mohairs `where` function are **exactly** the same as the arguments to the function exported by the criterion module.
+mohair is an sql builder which does a lot more than criterion. [go check it out.](https://github.com/snd/mohair)
+
 ### install
 
-    npm install criterion
+```
+npm install criterion
+```
 
 ### use
 
-##### require
+require it:
 
-```coffeescript
-criterion = require 'criterion'
+```javascript
+var criterion = require('criterion');
 ```
 
-##### create from string and parameters
+criterion exports a single function.
+that function can be called with a **query object** as an argument.
+a query object describes an sql-where-condition.
+for an idea of possible query objects see the [examples](#examples) below.
 
-```coffeescript
-c = criterion 'x = ?', 6
-
-c.sql()     # 'x = ?'
-c.params()  # [6]
+```javascript
+var c = criterion({x: 7, y: 8});
 ```
 
-##### create from object
+criterion returns an object.
+sql and a list of parameter bindings can be generated from the object:
 
-```coffeescript
-c = criterion {x: 7}
-
-c.sql()     # 'x = ?'
-c.params()  # [7]
+```
+c.sql();        # => 'x = ? AND y = ?'
+c.params();     # => [7, 8]
 ```
 
-##### `and` and `or`
+alternatively criterion can be called with a string of **raw sql** and optional parameter bindings:
 
-```coffeescript
-fst = criterion {x: 7, y: 'foo'}
-snd = criterion 'z = ?', true
+```javascript
+var c = criterion('x = ? AND Y = ?', 7, 8);
 
-fst.and(snd).sql()      # '(x = ?) AND (y = ?) AND (z = ?)'
-fst.and(snd).params()   # [7, 'foo', true]
-
-snd.or(fst).sql()       # '(z = ?) OR (x = ? AND y = ?)'
-snd.or(fst).params()    # [true, 7, 'foo']
+c.sql();        # => 'x = ? AND y = ?'
+c.params();     # => [7, 8]
 ```
 
-##### `not`
+any criterion and other object that responds to a `sql` and optionally a `params` method can
+be used in place of any parameter binding.
+this allows you to mix query objects with arbitrary sql.
 
-```coffeescript
-c = criterion {x: 7, y: 'foo'}
-
-c.not().sql()           # 'NOT ((x = ?) AND (y = ?))'
-c.not().params()        # [7, 'foo', true]
-
-c.not().not().sql()     # '(x = ?) AND (y = ?)'
-c.not().not().params()  # [7, 'foo', true]
+```javascript
+var c = criterion({x: {$ne: criterion('LOG(y, ?'), 4)}});
+c.sql();        # => 'x != LOG(y, ?)'
+c.params();     # => [4]
 ```
 
-criteria are immutable: `and`, `or` and `not` return new objects.
+criteria can be combined:
 
-### possible function arguments to `criterion`
+```javascript
+var fst = criterion({x: 7, y: 'a'});
+var snd = criterion('z = ?', true);
 
-##### find where `x = 7` and `y = 'foo'`
+fst.and(snd).sql();         # => '(x = ?) AND (y = ?) AND (z = ?)'
+fst.and(snd).params();      # => [7, 'a', true]
 
-```coffeescript
-{x: 7, y: 'foo'}
-# or
-[{x: 7}, {y: 'foo'}]
-# or
-'x = ? AND y = ?', 7, 'foo'
+snd.or(fst).sql();          # => '(z = ?) OR (x = ? AND y = ?)'
+snd.or(fst).params();       # => [true, 7, 'a']
 ```
 
-##### find where `x` is in `[1, 2, 3]`
+criteria can be negated:
 
-```coffeescript
-{x: [1, 2, 3]}
+```javascript
+var c = criterion({x: 7, y: 'a'});
+c.not().sql();              # => 'NOT ((x = ?) AND (y = ?))'
+c.not().params();           # => [7, 'a', true]
 ```
 
-##### find where `x` is not in `[1, 2, 3]`
+double negations are removed:
 
-```coffeescript
-{x: {$nin: [1, 2, 3]}}
+```javascript
+c.not().not().sql();        # => '(x = ?) AND (y = ?)'
+c.not().not().params();     # => [7, 'a', true]
 ```
 
-##### find where `x != 3`
+`and`, `or` and `not` return new objects.
+no method ever changes the state of the object it is called on.
+this enables a functional programming style.
 
-```coffeescript
-{x: {$ne: 3}}
-# or
-'x != ?', 3
+### examples
+
+##### logical
+
+###### find where `x = 7` and `y = 'a'`
+
+```javascript
+var c = criterion({x: 7, y: 'a'});
+c.sql();        # => 'x = ? AND y = ?'
+c.params();     # => [7, 'a']
+```
+or
+```javascript
+var c = criterion([{x: 7}, {y: 'a'}]);
+```
+or
+```javascript
+var c = criterion('x = ? AND y = ?', 7, 'a');
 ```
 
-##### find where `x < 3` and `y <= 4`
+###### find where `x = 7` or `y = 6`
 
-```coffeescript
-{x: {$lt: 3}, y: {$lte: 4}}
-# or
-'x < ? AND y <= ?', 3, 4
+```javascript
+var c = {$or: [{x: 7}, {y: 6}]}
+```
+or
+```javascript
+var c = criterion({$or: {x: 7, y: 6}});
+```
+or
+```javascript
+var c = criterion('x = ? OR y = ?', 7, 6);
 ```
 
-##### find where `x > 3` and `y >= 4`
+##### comparison
 
-```coffeescript
-{x: {$gt: 3}, y: {$gte: 4}}
-# or
-'x > ? AND y >= ?', 3, 4
+###### find where `x != 3`
+
+```javascript
+var c = criterion({x: {$ne: 3}});
+c.sql();        # => 'x != ?'
+c.params();     # => [3]
+```
+or
+```javascript
+var c = criterion('x != ?', 3);
+c.sql();        # => 'x != ?'
+c.params();     # => [3]
 ```
 
-##### find where not (`x > 3` and `y >= 4`)
+###### find where `x < 3` and `y <= 4`
 
-```coffeescript
-{$not: {x: {$gt: 3}, y: {$gte: 4}}}
-# or
-'NOT (x > ? AND y >= ?)', 3, 4
+```javascript
+var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
+c.sql();        # => 'x != LOG(y, ?)'
+c.params();     # => [4]
+```
+or
+```javascript
+var c = criterion('x < ? AND y <= ?', 3, 4);
 ```
 
-##### find where `x < NOW()`
+###### find where `x > 3` and `y >= 4`
 
-```coffeescript
+```javascript
+var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
+```
+or
+```javascript
+var c = criterion('x > ? AND y >= ?', 3, 4);
+```
+
+###### find where not (`x > 3` and `y >= 4`)
+
+```javascript
+var c = criterion({$not: {x: {$gt: 3}, y: {$gte: 4}}});
+```
+or
+```javascript
+var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
+```
+
+###### find where `x < NOW()`
+
+```javascript
 'x < NOW()'
 ```
 
-##### find where `x` is between `5` and `10`
+```javascript
+var c = criterion(x: {$lt: criterion('NOW()')});
+```
 
-```coffeescript
+###### find where `x != LOG(y, 4)`
+
+```javascript
+var c = criterion({x: {$ne: criterion('LOG(y, ?'), 4)}});
+c.sql();        # => 'x != LOG(y, ?)'
+c.params();     # => [4]
+```
+
+###### find where `x` is between `5` and `10`
+
+```javascript
 'x BETWEEN ? AND ?', 5, 10
 ```
 
-##### find where `x = 7` or `y = 6`
+##### array
 
-```coffeescript
-{$or: [{x: 7}, {y: 6}]}
-# or
-{$or: {x: 7, y: 6}}
-# or
-'x = ? OR y = ?', 7, 6
+###### find where `x` is in `[1, 2, 3]`
+
+```javascript
+var c = criterion({x: [1, 2, 3]});
+c.sql();        # => 'x IN (?, ?, ?)'
+c.params();     # => [1,2,3]
+```
+or
+```javascript
+var c = criterion('x IN (?, ?, ?)', 1, 2, 3);
 ```
 
-##### find where `x` is `null`
+###### find where `x` is not in `[1, 2, 3]`
 
-```coffeescript
-{x: {$null: true}}
-# or
-'x IS NULL'
+```javascript
+var c = criterion({x: {$nin: [1, 2, 3]}});
+c.sql();        # => 'x NOT IN (?, ?, ?)'
+c.params();     # => [1,2,3]
+```
+or
+```javascript
+var c = criterion('x NOT IN (?, ?, ?)', 1, 2, 3);
 ```
 
-##### find where `x` is not `null`
+##### null
 
-```coffeescript
-{x: {$null: false}}
-# or
-'x IS NOT NULL'
+###### find where `x` is `null`
+
+```javascript
+var c = criterion({x: {$null: true});
+c.sql();        # => 'x IS NULL'
+c.params();     # => []
+```
+or
+```javascript
+var c = criterion('x IS NULL');
 ```
 
-all query parts can be composed at will!
+###### find where `x` is not `null`
+
+```javascript
+var c = criterion({x: {$null: false}});
+c.sql();        # => 'x IS NOT NULL'
+c.params();     # => []
+```
+or
+```javascript
+var c = criterion('x IS NOT NULL');
+```
 
 ### license: MIT
