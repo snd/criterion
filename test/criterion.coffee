@@ -226,3 +226,54 @@ module.exports =
             test.deepEqual c.params(), ["user", "hash", 1]
 
             test.done()
+
+    'raw':
+
+        'raw without param': (test) ->
+            c = criterion 'x IS NULL'
+
+            test.equal c.sql(), 'x IS NULL'
+            test.deepEqual c.params(), []
+
+            test.done()
+
+        'raw with param': (test) ->
+            c = criterion 'x = ?', 7
+
+            test.equal c.sql(), 'x = ?'
+            test.deepEqual c.params(), [7]
+
+            test.done()
+
+        'raw with params': (test) ->
+            c = criterion 'x = ? AND y = ?', 7, 8
+
+            test.equal c.sql(), 'x = ? AND y = ?'
+            test.deepEqual c.params(), [7, 8]
+
+            test.done()
+
+        'raw with param and array': (test) ->
+            c = criterion 'x = ? AND y IN (?)', 7, [8,9,10]
+
+            test.equal c.sql(), 'x = ? AND y IN (?, ?, ?)'
+            test.deepEqual c.params(), [7, 8, 9, 10]
+
+            test.done()
+
+        'raw with params and array': (test) ->
+            c = criterion 'x = ? AND y = ? AND z IN (?)', 7, 8, [9,10,11]
+
+            test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?)'
+            test.deepEqual c.params(), [7, 8, 9, 10, 11]
+
+            test.done()
+
+        'raw with params and arrays': (test) ->
+            c = criterion 'x = ? AND y = ? AND z IN (?) AND (a && ARRAY[?])', 7, 8, [9,10,11], [12,13,14]
+
+            test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?) AND (a && ARRAY[?, ?, ?])'
+            test.deepEqual c.params(), [7, 8, 9, 10, 11, 12, 13, 14]
+
+            test.done()
+
