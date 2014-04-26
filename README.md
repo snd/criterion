@@ -11,7 +11,7 @@ criterion is inspired by the
 - [mesa, mohair and criterion](#mesa-mohair-and-criterion)
 - [install](#install)
 - [basic usage](#basic-usage)
-- [usage examples](#examples)
+- [usage examples](#usage-examples)
   - [equal](#equal-find-where-x-7)
   - [not equal](#not-equal-find-where-x-7)
   - [and](#and-find-where-x-7-and-y-a)
