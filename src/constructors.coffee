@@ -33,9 +33,7 @@ prototypes.raw = beget prototypes.base,
 
     params: ->
         if @_params
-            params = []
-            @_params.forEach (c) -> params = params.concat c
-            params
+            [].concat @_params...
 
 constructors.raw = (sql, params) ->
     beget prototypes.raw, {_sql: sql, _params: params}
