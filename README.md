@@ -60,7 +60,7 @@ npm install criterion
 put this line in the dependencies section of your `package.json`:
 
 ```
-"criterion": "0.3.2"
+"criterion": "0.3.3"
 ```
 
 and run:

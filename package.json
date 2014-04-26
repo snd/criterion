@@ -1,6 +1,6 @@
 {
   "name": "criterion",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "criterion describes sql-where-conditions as objects which can be combined and manipulated",
   "keywords": ["sql", "condition", "where", "query"],
   "homepage": "http://github.com/snd/criterion",
