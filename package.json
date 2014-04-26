@@ -1,41 +1,41 @@
 {
-    "name": "criterion",
-    "version": "0.3.1",
-    "description": "criterion describes sql-where-conditions as objects which can be combined and manipulated",
-    "keywords": ["sql", "condition", "where", "query"],
-    "homepage": "http://github.com/snd/criterion",
-    "author": {
-        "name": "Maximilian Krüger",
-        "email": "kruemaxi@gmail.com",
-        "url": "http://github.com/snd"
-    },
-    "bugs": {
-        "url": "http://github.com/snd/criterion/issues",
-        "email": "kruemaxi@gmail.com"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/snd/criterion.git"
-    },
-    "licenses": {
-        "type": "MIT",
-        "url": "git://github.com/snd/criterion/LICENSE"
-    },
-    "engines": {
-        "node": ">=0.8.5"
-    },
-    "dependencies": {
-    },
-    "devDependencies": {
-        "coffee-script": "1.6.3",
-        "nodeunit": "0.8"
-    },
-    "main": "src/factory",
-    "scripts": {
-        "prepublish": "coffee --bare --compile --output src src/*.coffee",
-        "postpublish": "rm src/*.js",
-        "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
-        "posttest": "rm src/*.js && rm test/*.js",
-        "test": "nodeunit test/*.js"
-    }
+  "name": "criterion",
+  "version": "0.3.1",
+  "description": "criterion describes sql-where-conditions as objects which can be combined and manipulated",
+  "keywords": ["sql", "condition", "where", "query"],
+  "homepage": "http://github.com/snd/criterion",
+  "author": {
+    "name": "Maximilian Krüger",
+    "email": "kruemaxi@gmail.com",
+    "url": "http://github.com/snd"
+  },
+  "bugs": {
+    "url": "http://github.com/snd/criterion/issues",
+    "email": "kruemaxi@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/snd/criterion.git"
+  },
+  "licenses": {
+    "type": "MIT",
+    "url": "git://github.com/snd/criterion/LICENSE"
+  },
+  "engines": {
+    "node": ">=0.8.5"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "coffee-script": "1.6.3",
+    "nodeunit": "0.8"
+  },
+  "main": "src/factory",
+  "scripts": {
+    "prepublish": "coffee --bare --compile --output src src/*.coffee",
+    "postpublish": "rm src/*.js",
+    "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
+    "posttest": "rm src/*.js && rm test/*.js",
+    "test": "nodeunit test/*.js"
+  }
 }
