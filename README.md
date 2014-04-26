@@ -244,7 +244,7 @@ c.params();     // => [1,2,3]
 ```
 or
 ```javascript
-var c = criterion('x IN (?, ?, ?)', 1, 2, 3);
+var c = criterion('x IN (?)', [1, 2, 3]);
 ```
 
 #### not in: find where `x` is not in `[1, 2, 3]`
@@ -256,7 +256,7 @@ c.params();     // => [1,2,3]
 ```
 or
 ```javascript
-var c = criterion('x NOT IN (?, ?, ?)', 1, 2, 3);
+var c = criterion('x NOT IN (?)', [1, 2, 3]);
 ```
 
 #### null: find where `x` is `null`
