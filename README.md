@@ -48,6 +48,16 @@ var c = criterion('x = ? AND Y = ?', 7, 8);
 
 c.sql();        // => 'x = ? AND y = ?'
 c.params();     // => [7, 8]
+
+var d = criterion('x = ? AND y IN (?)', 7, [8, 9, 10]);
+
+d.sql();        // => 'x = ? AND y IN (?, ?, ?)'
+d.params();     // => [7, 8, 9, 10]
+
+var e = criterion('x = ? AND (y && ARRAY[?])', 7, [8, 9, 10]);
+
+e.sql();        // => 'x = ? AND (y && ARRAY[?, ?, ?])'
+e.params();     // => [7, 8, 9, 10]
 ```
 
 any criterion and any other object that responds to a `sql()` and optionally a `params()` method can
