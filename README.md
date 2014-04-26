@@ -44,7 +44,7 @@ and manipulated.
 [mesa](http://github.com/snd/mesa) is not an orm. it aims to help as much as possible with the construction, composition and execution of sql queries while not restricting full access to the underlying database driver and database in any way.
 *mesa uses mohair.*
 
-the arguments to mohairs and mesas `where()` method are **exactly** the same as the arguments to the function exported by criterion.
+the arguments to mohairs and mesas `where()` method are **exactly** the same as the [arguments to the function exported by criterion](http://github.com/snd/criterion#usage-examples)
 
 mesa supports all methods supported by mohair with some additions.
 look into mohairs documentation to get the full picture of what's possible with mesa.
