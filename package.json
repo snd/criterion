@@ -2,7 +2,7 @@
     "name": "criterion",
     "version": "0.3.1",
     "description": "criterion describes sql-where-conditions as objects which can be combined and manipulated",
-    "keywords": ["sql", "condition", "where"],
+    "keywords": ["sql", "condition", "where", "query"],
     "homepage": "http://github.com/snd/criterion",
     "author": {
         "name": "Maximilian Krüger",
