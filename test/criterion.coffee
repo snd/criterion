@@ -2,277 +2,268 @@ criterion = require '../src/factory'
 
 module.exports =
 
-    'create from string and parameters': (test) ->
-        c = criterion 'x = ? AND y = ?', 6, 'bar'
+  'create from string and parameters': (test) ->
+    c = criterion 'x = ? AND y = ?', 6, 'bar'
 
-        test.equal c.sql(), 'x = ? AND y = ?'
-        test.deepEqual c.params(), [6, 'bar']
+    test.equal c.sql(), 'x = ? AND y = ?'
+    test.deepEqual c.params(), [6, 'bar']
 
-        test.done()
+    test.done()
 
-    'create from object': (test) ->
-        c = criterion {x: 7}
+  'create from object': (test) ->
+    c = criterion {x: 7}
 
-        test.equal c.sql(), 'x = ?'
-        test.deepEqual c.params(), [7]
+    test.equal c.sql(), 'x = ?'
+    test.deepEqual c.params(), [7]
 
-        test.done()
+    test.done()
 
-    'and': (test) ->
-        fst = criterion {x: 7, y: 'foo'}
-        snd = criterion 'z = ?', true
+  'and': (test) ->
+    fst = criterion {x: 7, y: 'foo'}
+    snd = criterion 'z = ?', true
 
-        fstAndSnd = fst.and snd
+    fstAndSnd = fst.and snd
 
-        test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
-        test.deepEqual fstAndSnd.params(), [7, 'foo', true]
+    test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
+    test.deepEqual fstAndSnd.params(), [7, 'foo', true]
 
-        test.done()
+    test.done()
 
-    'or': (test) ->
-        fst = criterion {x: 7, y: 'foo'}
-        snd = criterion 'z = ?', true
+  'or': (test) ->
+    fst = criterion {x: 7, y: 'foo'}
+    snd = criterion 'z = ?', true
 
-        sndOrFst = snd.or fst
+    sndOrFst = snd.or fst
 
-        test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
-        test.deepEqual sndOrFst.params(), [true, 7, 'foo']
+    test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
+    test.deepEqual sndOrFst.params(), [true, 7, 'foo']
 
-        test.done()
+    test.done()
 
-    'not': (test) ->
+  'not': (test) ->
+    c = criterion {x: 7, y: 'foo'}
 
-        c = criterion {x: 7, y: 'foo'}
+    test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
+    test.deepEqual c.not().params(), [7, 'foo']
 
-        test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
-        test.deepEqual c.not().params(), [7, 'foo']
+    test.done()
 
-        test.done()
+  'double negation is removed': (test) ->
+    c = criterion {x: 7, y: 'foo'}
 
-    'double negation is removed': (test) ->
+    test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
+    test.deepEqual c.not().not().params(), [7, 'foo']
 
-        c = criterion {x: 7, y: 'foo'}
+    test.equal c.not().not().not().sql(), 'NOT ((x = ?) AND (y = ?))'
+    test.deepEqual c.not().not().not().params(), [7, 'foo']
 
-        test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
-        test.deepEqual c.not().not().params(), [7, 'foo']
+    test.done()
 
-        test.equal c.not().not().not().sql(), 'NOT ((x = ?) AND (y = ?))'
-        test.deepEqual c.not().not().not().params(), [7, 'foo']
+  'throw on':
 
-        test.done()
+    'not string or object': (test) ->
+      test.throws -> criterion 6
+      test.done()
 
-    'throw on':
+    'empty object': (test) ->
+      test.throws -> criterion {}
+      test.done()
 
-        'not string or object': (test) ->
-            test.throws -> criterion 6
+    'null value with modifier': (test) ->
+      test.throws -> criterion {x: {$lt: null}}
+      test.done()
 
-            test.done()
+    'null value without modifier': (test) ->
+      test.throws -> criterion {x: null}
+      test.done()
 
-        'empty object': (test) ->
-            test.throws -> criterion {}
+    'in with empty array': (test) ->
+      test.throws -> criterion {x: []}
+      test.done()
 
-            test.done()
+    '$nin with empty array': (test) ->
+      test.throws -> criterion {x: {$nin: []}}
+      test.done()
 
-        'null value with modifier': (test) ->
-            test.throws -> criterion {x: {$lt: null}}
+  'queries':
 
-            test.done()
+    'and with object': (test) ->
+      c = criterion {x: 7, y: 'foo'}
 
-        'null value without modifier': (test) ->
-            test.throws -> criterion {x: null}
+      test.equal c.sql(), '(x = ?) AND (y = ?)'
+      test.deepEqual c.params(), [7, 'foo']
 
-            test.done()
+      test.done()
 
-        'in with empty array': (test) ->
-            test.throws -> criterion {x: []}
+    'and with array': (test) ->
+      c = criterion [{x: 7}, {y: 'foo'}]
 
-            test.done()
+      test.equal c.sql(), '(x = ?) AND (y = ?)'
+      test.deepEqual c.params(), [7, 'foo']
 
-        '$nin with empty array': (test) ->
-            test.throws -> criterion {x: {$nin: []}}
+      test.done()
 
-            test.done()
+    'in': (test) ->
+      c = criterion {x: [1, 2, 3]}
 
-    'queries':
+      test.equal c.sql(), 'x IN (?, ?, ?)'
+      test.deepEqual c.params(), [1, 2, 3]
 
-        'and with object': (test) ->
-            c = criterion {x: 7, y: 'foo'}
+      test.done()
 
-            test.equal c.sql(), '(x = ?) AND (y = ?)'
-            test.deepEqual c.params(), [7, 'foo']
+    '$nin': (test) ->
+      c = criterion {x: {$nin: [1, 2, 3]}}
 
-            test.done()
+      test.equal c.sql(), 'x NOT IN (?, ?, ?)'
+      test.deepEqual c.params(), [1, 2, 3]
 
-        'and with array': (test) ->
-            c = criterion [{x: 7}, {y: 'foo'}]
+      test.done()
 
-            test.equal c.sql(), '(x = ?) AND (y = ?)'
-            test.deepEqual c.params(), [7, 'foo']
+    '$ne': (test) ->
+      c = criterion {x: {$ne: 3}}
 
-            test.done()
+      test.equal c.sql(), 'x != ?'
+      test.deepEqual c.params(), [3]
 
-        'in': (test) ->
-            c = criterion {x: [1, 2, 3]}
+      test.done()
 
-            test.equal c.sql(), 'x IN (?, ?, ?)'
-            test.deepEqual c.params(), [1, 2, 3]
+    'equality with criterion argument': (test) ->
+      c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
 
-            test.done()
+      test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
+      test.deepEqual c.params(), ['password', 'bf', 4]
 
-        '$nin': (test) ->
-            c = criterion {x: {$nin: [1, 2, 3]}}
+      test.done()
 
-            test.equal c.sql(), 'x NOT IN (?, ?, ?)'
-            test.deepEqual c.params(), [1, 2, 3]
+    '$ne with criterion argument': (test) ->
+      c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
-            test.done()
+      test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
+      test.deepEqual c.params(), ['password', 'bf', 4]
 
-        '$ne': (test) ->
-            c = criterion {x: {$ne: 3}}
+      test.done()
 
-            test.equal c.sql(), 'x != ?'
-            test.deepEqual c.params(), [3]
+    '$lt and $lte': (test) ->
+      c = criterion {x: {$lt: 3}, y: {$lte: 4}}
 
-            test.done()
+      test.equal c.sql(), '(x < ?) AND (y <= ?)'
+      test.deepEqual c.params(), [3, 4]
 
-        'equality with criterion argument': (test) ->
-            c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
+      test.done()
 
-            test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
-            test.deepEqual c.params(), ['password', 'bf', 4]
+    '$lt with criterion argument': (test) ->
+      c = criterion {x: {$lt: criterion('NOW()')}}
 
-            test.done()
+      test.equal c.sql(), 'x < NOW()'
+      test.deepEqual c.params(), []
 
-        '$ne with criterion argument': (test) ->
-            c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
+      test.done()
 
-            test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
-            test.deepEqual c.params(), ['password', 'bf', 4]
+    '$gt and $gte': (test) ->
+      c = criterion {x: {$gt: 3}, y: {$gte: 4}}
 
-            test.done()
+      test.equal c.sql(), '(x > ?) AND (y >= ?)'
+      test.deepEqual c.params(), [3, 4]
 
-        '$lt and $lte': (test) ->
-            c = criterion {x: {$lt: 3}, y: {$lte: 4}}
+      test.done()
 
-            test.equal c.sql(), '(x < ?) AND (y <= ?)'
-            test.deepEqual c.params(), [3, 4]
+    '$not': (test) ->
+      c = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
 
-            test.done()
+      test.equal c.sql(), 'NOT ((x > ?) AND (y >= ?))'
+      test.deepEqual c.params(), [3, 4]
 
-        '$lt with criterion argument': (test) ->
-            c = criterion {x: {$lt: criterion('NOW()')}}
+      test.done()
 
-            test.equal c.sql(), 'x < NOW()'
-            test.deepEqual c.params(), []
+    '$or with object': (test) ->
+      c = criterion {$or: {x: 7, y: 'foo'}}
 
-            test.done()
+      test.equal c.sql(), '(x = ?) OR (y = ?)'
+      test.deepEqual c.params(), [7, 'foo']
 
-        '$gt and $gte': (test) ->
-            c = criterion {x: {$gt: 3}, y: {$gte: 4}}
+      test.done()
 
-            test.equal c.sql(), '(x > ?) AND (y >= ?)'
-            test.deepEqual c.params(), [3, 4]
+    '$or with array': (test) ->
+      c = criterion {$or: [{x: 7}, {y: 'foo'}]}
 
-            test.done()
+      test.equal c.sql(), '(x = ?) OR (y = ?)'
+      test.deepEqual c.params(), [7, 'foo']
 
-        '$not': (test) ->
-            c = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
+      test.done()
 
-            test.equal c.sql(), 'NOT ((x > ?) AND (y >= ?))'
-            test.deepEqual c.params(), [3, 4]
+    '$null: true': (test) ->
+      c = criterion {x: {$null: true}}
 
-            test.done()
+      test.equal c.sql(), 'x IS NULL'
+      test.deepEqual c.params(), []
 
-        '$or with object': (test) ->
-            c = criterion {$or: {x: 7, y: 'foo'}}
+      test.done()
 
-            test.equal c.sql(), '(x = ?) OR (y = ?)'
-            test.deepEqual c.params(), [7, 'foo']
+    '$null: false': (test) ->
+      c = criterion {x: {$null: false}}
 
-            test.done()
+      test.equal c.sql(), 'x IS NOT NULL'
+      test.deepEqual c.params(), []
 
-        '$or with array': (test) ->
-            c = criterion {$or: [{x: 7}, {y: 'foo'}]}
+      test.done()
 
-            test.equal c.sql(), '(x = ?) OR (y = ?)'
-            test.deepEqual c.params(), [7, 'foo']
+    '$or inside $and is wrapped in parentheses': (test) ->
+      c = criterion
+        username: "user"
+        password: "hash"
+        $or: [{active: 1}, active: {$null: true}]
 
-            test.done()
+      test.equal c.sql(), '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
+      test.deepEqual c.params(), ["user", "hash", 1]
 
-        '$null: true': (test) ->
-            c = criterion {x: {$null: true}}
+      test.done()
 
-            test.equal c.sql(), 'x IS NULL'
-            test.deepEqual c.params(), []
+  'raw':
 
-            test.done()
+    'raw without param': (test) ->
+      c = criterion 'x IS NULL'
 
-        '$null: false': (test) ->
-            c = criterion {x: {$null: false}}
+      test.equal c.sql(), 'x IS NULL'
+      test.deepEqual c.params(), []
 
-            test.equal c.sql(), 'x IS NOT NULL'
-            test.deepEqual c.params(), []
+      test.done()
 
-            test.done()
+    'raw with param': (test) ->
+      c = criterion 'x = ?', 7
 
-        '$or inside $and is wrapped in parentheses': (test) ->
-            c = criterion {
-                username: "user"
-                password: "hash"
-                $or: [{active: 1}, active: {$null: true}]
-            }
+      test.equal c.sql(), 'x = ?'
+      test.deepEqual c.params(), [7]
 
-            test.equal c.sql(), '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
-            test.deepEqual c.params(), ["user", "hash", 1]
+      test.done()
 
-            test.done()
+    'raw with params': (test) ->
+      c = criterion 'x = ? AND y = ?', 7, 8
 
-    'raw':
+      test.equal c.sql(), 'x = ? AND y = ?'
+      test.deepEqual c.params(), [7, 8]
 
-        'raw without param': (test) ->
-            c = criterion 'x IS NULL'
+      test.done()
 
-            test.equal c.sql(), 'x IS NULL'
-            test.deepEqual c.params(), []
+    'raw with param and array': (test) ->
+      c = criterion 'x = ? AND y IN (?)', 7, [8,9,10]
 
-            test.done()
+      test.equal c.sql(), 'x = ? AND y IN (?, ?, ?)'
+      test.deepEqual c.params(), [7, 8, 9, 10]
 
-        'raw with param': (test) ->
-            c = criterion 'x = ?', 7
+      test.done()
 
-            test.equal c.sql(), 'x = ?'
-            test.deepEqual c.params(), [7]
+    'raw with params and array': (test) ->
+      c = criterion 'x = ? AND y = ? AND z IN (?)', 7, 8, [9,10,11]
 
-            test.done()
+      test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?)'
+      test.deepEqual c.params(), [7, 8, 9, 10, 11]
 
-        'raw with params': (test) ->
-            c = criterion 'x = ? AND y = ?', 7, 8
+      test.done()
 
-            test.equal c.sql(), 'x = ? AND y = ?'
-            test.deepEqual c.params(), [7, 8]
+    'raw with params and arrays': (test) ->
+      c = criterion 'x = ? AND y = ? AND z IN (?) AND (a && ARRAY[?])', 7, 8, [9,10,11], [12,13,14]
 
-            test.done()
+      test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?) AND (a && ARRAY[?, ?, ?])'
+      test.deepEqual c.params(), [7, 8, 9, 10, 11, 12, 13, 14]
 
-        'raw with param and array': (test) ->
-            c = criterion 'x = ? AND y IN (?)', 7, [8,9,10]
-
-            test.equal c.sql(), 'x = ? AND y IN (?, ?, ?)'
-            test.deepEqual c.params(), [7, 8, 9, 10]
-
-            test.done()
-
-        'raw with params and array': (test) ->
-            c = criterion 'x = ? AND y = ? AND z IN (?)', 7, 8, [9,10,11]
-
-            test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?)'
-            test.deepEqual c.params(), [7, 8, 9, 10, 11]
-
-            test.done()
-
-        'raw with params and arrays': (test) ->
-            c = criterion 'x = ? AND y = ? AND z IN (?) AND (a && ARRAY[?])', 7, 8, [9,10,11], [12,13,14]
-
-            test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?) AND (a && ARRAY[?, ?, ?])'
-            test.deepEqual c.params(), [7, 8, 9, 10, 11, 12, 13, 14]
-
-            test.done()
+      test.done()
