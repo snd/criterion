@@ -25,8 +25,6 @@ prototypes.raw = beget prototypes.base,
         @_sql.replace /\?/g, ->
             i++
             if Array.isArray params[i]
-                if params[i].length is 0
-                    throw new Error "param ##{i} is empty array"
                 (params[i].map -> "?").join ", "
             else
                 "?"

@@ -69,6 +69,10 @@ module.exports =
       test.throws -> criterion {}
       test.done()
 
+    'empty array param': (test) ->
+      test.throws -> criterion 'b < ? AND a IN(?) AND c < ?', 6, [], 7
+      test.done()
+
     'null value with modifier': (test) ->
       test.throws -> criterion {x: {$lt: null}}
       test.done()

@@ -1,5 +1,5 @@
 constructors = require './constructors'
-{arrayify} = require './util'
+{arrayify, some} = require './util'
 
 # recursively construct the object graph of the criterion
 
@@ -14,7 +14,18 @@ module.exports = factory = (first, rest...) ->
         """
 
     # raw sql with optional bindings?
-    return constructors.raw first, rest if type is 'string'
+    if type is 'string'
+        isEmptyArray = (x) -> Array.isArray(x) and x.length is 0
+        emptyArrayParam = some(
+            rest
+            (x, i) -> {x: x, i: i}
+            ({x, i}) -> isEmptyArray x
+        )
+
+        if emptyArrayParam?
+            throw new Error "params ##{emptyArrayParam.i} is empty array"
+
+        return constructors.raw first, rest
 
     # array of query objects?
     if Array.isArray first
