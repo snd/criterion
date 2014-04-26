@@ -4,16 +4,16 @@ prototypes = {}
 
 module.exports = constructors = {}
 
+###################################################################################
 # base
-# ----
 
 prototypes.base =
     not: -> constructors.not @
     and: (other) -> constructors.and [@, other]
     or: (other) -> constructors.or [@, other]
 
-# raw sql
-# -------
+###################################################################################
+# raw sql with optional params
 
 prototypes.raw = beget prototypes.base,
     sql: ->
@@ -38,8 +38,8 @@ prototypes.raw = beget prototypes.base,
 constructors.raw = (sql, params) ->
     beget prototypes.raw, {_sql: sql, _params: params}
 
-# comparison
-# ----------
+###################################################################################
+# comparisons
 
 prototypes.comparison = beget prototypes.base,
     sql: ->
@@ -67,8 +67,8 @@ constructors.lowerThanEqual = comparisonConstructorByOperator '<='
 constructors.greaterThan = comparisonConstructorByOperator '>'
 constructors.greaterThanEqual = comparisonConstructorByOperator '>='
 
+###################################################################################
 # null
-# ----
 
 prototypes.null = beget prototypes.base,
     sql: -> "#{@_k} IS #{if @_isNull then '' else 'NOT '}NULL"
@@ -77,8 +77,8 @@ prototypes.null = beget prototypes.base,
 constructors.null = (k, isNull) ->
     beget prototypes.null, {_k: k, _isNull: isNull}
 
+###################################################################################
 # negation
-# --------
 
 prototypes.not = beget prototypes.base,
     innerCriterion: -> @_criterion._criterion
@@ -95,8 +95,8 @@ isNotCriterion = (c) ->
 constructors.not = (criterion) ->
     beget prototypes.not, {_criterion: criterion}
 
+###################################################################################
 # in
-# --
 
 prototypes.in = beget prototypes.base,
     sql: ->
@@ -111,8 +111,8 @@ constructors.in = (k, vs) ->
 constructors.notIn = (k, vs) ->
     beget prototypes.in, {_k: k, _vs: vs, _op: 'NOT IN'}
 
+###################################################################################
 # combination
-# -----------
 
 prototypes.combination = beget prototypes.base,
     sql: ->
