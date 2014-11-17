@@ -1,5 +1,7 @@
 criterion = require '../src/criterion'
 
+escape = (x) -> '"' + x + '"'
+
 module.exports =
 
   'create from string and parameters': (test) ->
@@ -18,7 +20,7 @@ module.exports =
 
     test.done()
 
-  'and': (test) ->
+  'combine with and': (test) ->
     fst = criterion {x: 7, y: 'foo'}
     snd = criterion 'z = ?', true
 
@@ -29,7 +31,7 @@ module.exports =
 
     test.done()
 
-  'or': (test) ->
+  'combine with or': (test) ->
     fst = criterion {x: 7, y: 'foo'}
     snd = criterion 'z = ?', true
 
@@ -40,7 +42,7 @@ module.exports =
 
     test.done()
 
-  'not': (test) ->
+  'negate with not': (test) ->
     c = criterion {x: 7, y: 'foo'}
 
     test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
@@ -219,6 +221,123 @@ module.exports =
 
       test.equal c.sql(), '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
       test.deepEqual c.params(), ["user", "hash", 1]
+
+      test.done()
+
+  'queries with escaping':
+
+    'and with object': (test) ->
+      c = criterion {x: 7, y: 'foo'}
+
+      test.equal c.sql(escape), '("x" = ?) AND ("y" = ?)'
+
+      test.done()
+
+    'and with array': (test) ->
+      c = criterion [{x: 7}, {y: 'foo'}]
+
+      test.equal c.sql(escape), '("x" = ?) AND ("y" = ?)'
+
+      test.done()
+
+    'in': (test) ->
+      c = criterion {x: [1, 2, 3]}
+
+      test.equal c.sql(escape), '"x" IN (?, ?, ?)'
+
+      test.done()
+
+    '$nin': (test) ->
+      c = criterion {x: {$nin: [1, 2, 3]}}
+
+      test.equal c.sql(escape), '"x" NOT IN (?, ?, ?)'
+
+      test.done()
+
+    '$ne': (test) ->
+      c = criterion {x: {$ne: 3}}
+
+      test.equal c.sql(escape), '"x" != ?'
+
+      test.done()
+
+    'equality with criterion argument': (test) ->
+      c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
+
+      test.equal c.sql(escape), '"x" = crypt(?, gen_salt(?, ?))'
+
+      test.done()
+
+    '$ne with criterion argument': (test) ->
+      c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
+
+      test.equal c.sql(escape), '"x" != crypt(?, gen_salt(?, ?))'
+
+      test.done()
+
+    '$lt and $lte': (test) ->
+      c = criterion {x: {$lt: 3}, y: {$lte: 4}}
+
+      test.equal c.sql(escape), '("x" < ?) AND ("y" <= ?)'
+
+      test.done()
+
+    '$lt with criterion argument': (test) ->
+      c = criterion {x: {$lt: criterion('NOW()')}}
+
+      test.equal c.sql(escape), '"x" < NOW()'
+
+      test.done()
+
+    '$gt and $gte': (test) ->
+      c = criterion {x: {$gt: 3}, y: {$gte: 4}}
+
+      test.equal c.sql(escape), '("x" > ?) AND ("y" >= ?)'
+
+      test.done()
+
+    '$not': (test) ->
+      c = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
+
+      test.equal c.sql(escape), 'NOT (("x" > ?) AND ("y" >= ?))'
+
+      test.done()
+
+    '$or with object': (test) ->
+      c = criterion {$or: {x: 7, y: 'foo'}}
+
+      test.equal c.sql(escape), '("x" = ?) OR ("y" = ?)'
+
+      test.done()
+
+    '$or with array': (test) ->
+      c = criterion {$or: [{x: 7}, {y: 'foo'}]}
+
+      test.equal c.sql(escape), '("x" = ?) OR ("y" = ?)'
+
+      test.done()
+
+    '$null: true': (test) ->
+      c = criterion {x: {$null: true}}
+
+      test.equal c.sql(escape), '"x" IS NULL'
+
+      test.done()
+
+    '$null: false': (test) ->
+      c = criterion {x: {$null: false}}
+
+      test.equal c.sql(escape), '"x" IS NOT NULL'
+
+      test.done()
+
+    '$or inside $and is wrapped in parentheses': (test) ->
+      c = criterion
+        username: "user"
+        password: "hash"
+        $or: [{active: 1}, active: {$null: true}]
+
+      test.equal c.sql(escape), '("username" = ?) AND ("password" = ?) AND (("active" = ?) OR ("active" IS NULL))'
 
       test.done()
 

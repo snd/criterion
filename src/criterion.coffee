@@ -36,6 +36,9 @@ explodeObject = (arrayOrObject) ->
 isSpecialValue = (value) ->
   value? and 'function' is typeof value.sql
 
+identity = (x) ->
+  x
+
 # calls iterator for the values in array in sequence.
 # calls iterator with the index as second argument.
 # returns the first value returned by iterator for which predicate returns true.
@@ -43,7 +46,7 @@ isSpecialValue = (value) ->
 
 some = (
   array
-  iterator = (x) -> x
+  iterator = identity
   predicate = (x) -> x?
   sentinel = undefined
 ) ->
@@ -102,11 +105,11 @@ factories.raw = (sql, params) ->
 # comparisons
 
 prototypes.comparison = beget prototypes.base,
-  sql: ->
+  sql: (escape = identity) ->
     if isSpecialValue @_value
-      "#{@_key} #{@_operator} #{@_value.sql()}"
+      "#{escape @_key} #{@_operator} #{@_value.sql()}"
     else
-      "#{@_key} #{@_operator} ?"
+      "#{escape @_key} #{@_operator} ?"
   params: ->
     if isSpecialValue @_value
       if 'function' is typeof @_value.params
@@ -130,8 +133,10 @@ factories.greaterThanEqual = getComparisonFactoryForOperator '>='
 # null
 
 prototypes.null = beget prototypes.base,
-  sql: -> "#{@_key} IS #{if @_isNull then '' else 'NOT '}NULL"
-  params: -> []
+  sql: (escape = identity) ->
+    "#{escape @_key} IS #{if @_isNull then '' else 'NOT '}NULL"
+  params: ->
+    []
 
 factories.null = (k, isNull) ->
   beget prototypes.null, {_key: k, _isNull: isNull}
@@ -140,12 +145,13 @@ factories.null = (k, isNull) ->
 
 prototypes.not = beget prototypes.base,
   innerCriterion: -> @_criterion._criterion
-  sql: ->
+  sql: (escape = identity) ->
     # remove double negation
     if isNotCriterion @_criterion
-      @innerCriterion().sql()
-    else "NOT (#{@_criterion.sql()})"
-  params: -> @_criterion.params()
+      @innerCriterion().sql(escape)
+    else "NOT (#{@_criterion.sql(escape)})"
+  params: ->
+    @_criterion.params()
 
 isNotCriterion = (c) ->
   prototypes.not.isPrototypeOf c
@@ -156,10 +162,10 @@ factories.not = (criterion) ->
 # in
 
 prototypes.in = beget prototypes.base,
-  sql: ->
+  sql: (escape = identity) ->
     questionMarks = []
     @_values.forEach -> questionMarks.push '?'
-    "#{@_key} #{@_operator} (#{questionMarks.join ', '})"
+    "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
   params: -> @_values
 
 factories.in = (key, values) ->
@@ -171,8 +177,9 @@ factories.notIn = (key, values) ->
 # combination
 
 prototypes.combination = beget prototypes.base,
-  sql: ->
-    @_criteria.map((c) -> "(#{c.sql()})").join " #{@_operator} "
+  sql: (escape = identity) ->
+    parts = @_criteria.map (c) -> "(#{c.sql(escape)})"
+    return parts.join " #{@_operator} "
 
   params: ->
     params = []
