@@ -29,6 +29,8 @@ criterion is inspired by the
   - [combining criteria with and](#combining-criteria-with-and)
   - [combining criteria with or](#combining-criteria-with-or)
   - [negating criteria with not](#negating-criteria-with-not)
+  - [escaping column names](#escaping-column-names)
+- [changelog](#changelog)
 - [license: MIT](#license-mit)
 
 ## motivation
@@ -312,5 +314,26 @@ var c = criterion({x: 7, y: 'a'});
 c.not().not().sql();    // -> '(x = ?) AND (y = ?)'
 c.not().not().params(); // -> [7, 'a']
 ```
+
+### escaping column names
+
+you can pass a function into any `sql()` method to escape column names:
+
+```javascript
+var c = criterion({x: 7, y: 8});
+
+var escape = function(x) {
+  return '"' + x + '"';
+};
+c.sql(escape);  // -> '"x" = ? AND "y" = ?' <- x and y are escaped !
+c.params();     // -> [7, 8]
+```
+
+## changelog
+
+### 0.3.4
+
+- a function can be passed as an argument into any `sql` method to escape
+  column names in the resulting SQL
 
 ### [license: MIT](LICENSE)
