@@ -8,7 +8,7 @@
 > composable objects which it can then compile to SQL
 
 criterion is inspired by the
-[mongodb query language](http://www.mongodb.org/display/DOCS/Advanced+Queries)
+[mongodb query language](http://docs.mongodb.org/manual/tutorial/query-documents/)
 
 - [motivation](#motivation)
 - [introduction](#introduction)
