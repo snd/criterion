@@ -1,4 +1,4 @@
-criterion = require '../src/factory'
+criterion = require '../src/criterion'
 
 module.exports =
 
