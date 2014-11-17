@@ -107,7 +107,8 @@ factories.raw = (sql, params) ->
 prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
     if isSpecialValue @_value
-      "#{escape @_key} #{@_operator} #{@_value.sql()}"
+      # put raw sql in parentheses
+      "#{escape @_key} #{@_operator} (#{@_value.sql()})"
     else
       "#{escape @_key} #{@_operator} ?"
   params: ->

@@ -136,7 +136,7 @@ module.exports =
     'equality with criterion argument': (test) ->
       c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
 
-      test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(), 'x = (crypt(?, gen_salt(?, ?)))'
       test.deepEqual c.params(), ['password', 'bf', 4]
 
       test.done()
@@ -144,7 +144,7 @@ module.exports =
     '$ne with criterion argument': (test) ->
       c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
-      test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(), 'x != (crypt(?, gen_salt(?, ?)))'
       test.deepEqual c.params(), ['password', 'bf', 4]
 
       test.done()
@@ -160,7 +160,7 @@ module.exports =
     '$lt with criterion argument': (test) ->
       c = criterion {x: {$lt: criterion('NOW()')}}
 
-      test.equal c.sql(), 'x < NOW()'
+      test.equal c.sql(), 'x < (NOW())'
       test.deepEqual c.params(), []
 
       test.done()
@@ -264,14 +264,14 @@ module.exports =
     'equality with criterion argument': (test) ->
       c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
 
-      test.equal c.sql(escape), '"x" = crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(escape), '"x" = (crypt(?, gen_salt(?, ?)))'
 
       test.done()
 
     '$ne with criterion argument': (test) ->
       c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
-      test.equal c.sql(escape), '"x" != crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(escape), '"x" != (crypt(?, gen_salt(?, ?)))'
 
       test.done()
 
@@ -285,7 +285,7 @@ module.exports =
     '$lt with criterion argument': (test) ->
       c = criterion {x: {$lt: criterion('NOW()')}}
 
-      test.equal c.sql(escape), '"x" < NOW()'
+      test.equal c.sql(escape), '"x" < (NOW())'
 
       test.done()
 

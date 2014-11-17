@@ -125,7 +125,7 @@ prototypes.comparison = beget(prototypes.base, {
       escape = identity;
     }
     if (isSpecialValue(this._value)) {
-      return "" + (escape(this._key)) + " " + this._operator + " " + (this._value.sql());
+      return "" + (escape(this._key)) + " " + this._operator + " (" + (this._value.sql()) + ")";
     } else {
       return "" + (escape(this._key)) + " " + this._operator + " ?";
     }
