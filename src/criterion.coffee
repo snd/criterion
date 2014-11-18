@@ -148,13 +148,13 @@ prototypes.not = beget prototypes.base,
   innerCriterion: -> @_criterion._criterion
   sql: (escape = identity) ->
     # remove double negation
-    if isNotCriterion @_criterion
+    if isNegation @_criterion
       @innerCriterion().sql(escape)
     else "NOT (#{@_criterion.sql(escape)})"
   params: ->
     @_criterion.params()
 
-isNotCriterion = (c) ->
+isNegation = (c) ->
   prototypes.not.isPrototypeOf c
 
 factories.not = (criterion) ->
