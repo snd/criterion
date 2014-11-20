@@ -1,5 +1,5 @@
 ###################################################################################
-# helpers
+# HELPERS
 
 # return a new object which has `proto` as its prototype and
 # all properties in `properties` as its own properties.
@@ -60,7 +60,7 @@ some = (
   return sentinel
 
 ###################################################################################
-# prototypes and factories
+# PROTOTYPES AND FACTORIES
 
 # prototype objects for the objects that describe parts of sql-where-conditions
 # as well as factory functions that make such objects by prototypically
@@ -194,7 +194,7 @@ factories.or = (criteria) ->
   beget prototypes.combination, {_criteria: criteria, _operator: 'OR'}
 
 ###################################################################################
-# main factory
+# MAIN FACTORY
 
 # function that recursively construct the object graph
 # of the criterion described by the arguments
