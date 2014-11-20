@@ -321,7 +321,6 @@ module.exports = mainFactory = (first, rest...) ->
   # FROM HERE ON VALUE IS AN OBJECT
 
   # {x: [1, 2, 3]} is a shorthand for {x: {$in: [1, 2, 3]}}
-  # shorthand?
   if Array.isArray value
     return modifierFactories.$in key, value
 
