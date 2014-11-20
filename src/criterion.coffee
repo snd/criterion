@@ -29,15 +29,11 @@ explodeObject = (arrayOrObject) ->
 
   return array
 
-# criterion treats values in comparisons which are objects
-# which have a sql property that is a function in a special way:
-# by replacing the parameter binding with the raw sql
-
-isSpecialValue = (value) ->
-  value? and 'function' is typeof value.sql
-
 identity = (x) ->
   x
+
+isEmptyArray = (x) ->
+  Array.isArray(x) and x.length is 0
 
 # calls iterator for the values in array in sequence.
 # calls iterator with the index as second argument.
@@ -68,6 +64,7 @@ some = (
 
 prototypes = {}
 factories = {}
+modifierFactories = {}
 
 # the base prototype for all other prototypes
 # as all objects should have the logical operators not, and and or
@@ -77,7 +74,15 @@ prototypes.base =
   and: (other) -> factories.and [@, other]
   or: (other) -> factories.or [@, other]
 
-# raw sql with optional params
+###################################################################################
+# raw sql fragment
+
+# criterion treats values in comparisons which are objects
+# which have a sql property that is a function in a special way:
+# by pasting the raw sql unmodified at the correct position
+
+isRawSqlFragment = (value) ->
+  value? and 'function' is typeof value.sql
 
 prototypes.raw = beget prototypes.base,
   sql: ->
@@ -99,38 +104,40 @@ prototypes.raw = beget prototypes.base,
     if @_params
       [].concat @_params...
 
+# params are optional
 factories.raw = (sql, params) ->
   beget prototypes.raw, {_sql: sql, _params: params}
 
-# comparisons
+###################################################################################
+# comparisons: eq, ne, lt, lte, gt, gte
 
 prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
-    if isSpecialValue @_value
+    if isRawSqlFragment @_value
       # put raw sql in parentheses
       "#{escape @_key} #{@_operator} (#{@_value.sql()})"
     else
       "#{escape @_key} #{@_operator} ?"
   params: ->
-    if isSpecialValue @_value
-      if 'function' is typeof @_value.params
-        @_value.params()
-      else
-        []
+    if isRawSqlFragment @_value
+      @_value.params?() or []
     else
       [@_value]
 
-getComparisonFactoryForOperator = (operator) ->
-  (key, value) ->
-    beget prototypes.comparison, {_key: key, _value: value, _operator: operator}
+comparisonNameToOperatorMapping =
+  $eq: '='
+  $ne: '!='
+  $lt: '<'
+  $lte: '<='
+  $gt: '>'
+  $gte: '>='
 
-factories.equal = getComparisonFactoryForOperator '='
-factories.notEqual = getComparisonFactoryForOperator '!='
-factories.lowerThan = getComparisonFactoryForOperator '<'
-factories.lowerThanEqual = getComparisonFactoryForOperator '<='
-factories.greaterThan = getComparisonFactoryForOperator '>'
-factories.greaterThanEqual = getComparisonFactoryForOperator '>='
+for name, operator of comparisonNameToOperatorMapping
+  do (name, operator) ->
+    modifierFactories[name] = (key, value) ->
+      beget prototypes.comparison, {_key: key, _value: value, _operator: operator}
 
+###################################################################################
 # null
 
 prototypes.null = beget prototypes.base,
@@ -139,9 +146,10 @@ prototypes.null = beget prototypes.base,
   params: ->
     []
 
-factories.null = (k, isNull) ->
+modifierFactories.$null = (k, isNull) ->
   beget prototypes.null, {_key: k, _isNull: isNull}
 
+###################################################################################
 # negation
 
 prototypes.not = beget prototypes.base,
@@ -160,22 +168,72 @@ isNegation = (c) ->
 factories.not = (criterion) ->
   beget prototypes.not, {_criterion: criterion}
 
-# in
+###################################################################################
+# exists
 
-prototypes.in = beget prototypes.base,
+prototypes.exists = beget prototypes.base,
   sql: (escape = identity) ->
-    questionMarks = []
-    @_values.forEach -> questionMarks.push '?'
-    "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
-  params: -> @_values
+    "EXISTS (#{@_value.sql escape})"
+  params: ->
+    @_value.params?() or []
 
-factories.in = (key, values) ->
-  beget prototypes.in, {_key: key, _values: values, _operator: 'IN'}
+factories.exists = (value) ->
+  unless isRawSqlFragment value
+    throw new Error '$exists key requires sql-fragment value'
+  beget prototypes.exists, {_value: value}
 
-factories.notIn = (key, values) ->
-  beget prototypes.in, {_key: key, _values: values, _operator: 'NOT IN'}
+###################################################################################
+# subquery expressions: in, nin, any, neAny, ...
 
-# combination
+prototypes.subquery = beget prototypes.base,
+  sql: (escape = identity) ->
+    if isRawSqlFragment @_value
+      "#{escape @_key} #{@_operator} (#{@_value.sql escape})"
+    else
+      questionMarks = []
+      @_value.forEach -> questionMarks.push '?'
+      "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
+  params: ->
+    if isRawSqlFragment @_value
+      @_value.params?() or []
+    else
+      @_value
+
+subqueryNameToOperatorMapping =
+  $in: 'IN'
+  $nin: 'NOT IN'
+  $any: '= ANY'
+  $neAny: '!= ANY'
+  $ltAny: '< ANY'
+  $lteAny: '<= ANY'
+  $gtAny: '> ANY'
+  $gteAny: '>= ANY'
+  $all: '= ALL'
+  $neAll: '!= ALL'
+  $ltAll: '< ALL'
+  $lteAll: '<= ALL'
+  $gtAll: '> ALL'
+  $gteAll: '>= ALL'
+
+for name, operator of subqueryNameToOperatorMapping
+  do (name, operator) ->
+    modifierFactories[name] = (key, value) ->
+      if Array.isArray value
+        if name in ['$in', '$nin']
+          if value.length is 0
+            throw new Error "#{name} key with empty array value"
+        else
+          # only $in and $nin support arrays
+          throw new Error "#{name} key doesn't support array value. only $in and $nin do!"
+      else
+        unless isRawSqlFragment value
+          # TODO improve this error message
+          throw new Error "#{name} key requires sql-fragment value (or array in case of $in and $nin)"
+
+      beget prototypes.subquery, {_key: key, _value: value, _operator: operator}
+
+###################################################################################
+# combination: and, or
 
 prototypes.combination = beget prototypes.base,
   sql: (escape = identity) ->
@@ -199,23 +257,17 @@ factories.or = (criteria) ->
 # function that recursively construct the object graph
 # of the criterion described by the arguments
 
-module.exports = factory = (first, rest...) ->
+module.exports = mainFactory = (first, rest...) ->
   type = typeof first
 
   # invalid arguments?
   unless 'string' is type or 'object' is type
-    throw new Error """
-      string or object expected as first argument
-      but #{type} given
-    """
+    throw new Error "string or object expected as first argument but #{type} given"
 
   # raw sql with optional bindings?
   if type is 'string'
 
     # make sure that no param is an empty array
-
-    isEmptyArray = (x) ->
-      Array.isArray(x) and x.length is 0
 
     emptyArrayParam = some(
       rest
@@ -232,21 +284,21 @@ module.exports = factory = (first, rest...) ->
   # array of query objects?
   if Array.isArray first
     if first.length is 0
-      throw new Error 'empty criterion'
+      throw new Error 'empty query object'
     # let's AND them together
-    return factories.and first.map factory
+    return factories.and first.map mainFactory
 
   keyCount = Object.keys(first).length
 
   if 0 is keyCount
-    throw new Error 'empty criterion'
+    throw new Error 'empty query object'
 
   # if there is more than one key in the query object
   # cut it up into objects with one key and AND them together
   if keyCount > 1
-      return factories.and explodeObject(first).map factory
+    return factories.and explodeObject(first).map mainFactory
 
-  # from here on we have an object with exactly one key-value-mapping
+  # FROM HERE ON WE HAVE AN OBJECT WITH EXACTLY ONE KEY-VALUE-MAPPING
 
   key = Object.keys(first)[0]
   value = first[key]
@@ -255,21 +307,23 @@ module.exports = factory = (first, rest...) ->
     throw new Error "value undefined or null for key #{key}"
 
   if key is '$or'
-    return factories.or explodeObject(value).map factory
+    return factories.or explodeObject(value).map mainFactory
 
   if key is '$not'
-    return factories.not factory value
+    return factories.not mainFactory value
+
+  if key is '$exists'
+    return factories.exists value
 
   unless 'object' is typeof value
-    return factories.equal key, value
+    return modifierFactories.$eq key, value
 
-  # from here on value is an object
+  # FROM HERE ON VALUE IS AN OBJECT
 
-  # array query?
+  # {x: [1, 2, 3]} is a shorthand for {x: {$in: [1, 2, 3]}}
+  # shorthand?
   if Array.isArray value
-    if value.length is 0
-      throw Error 'in with empty array'
-    return factories.in key, value
+    return modifierFactories.$in key, value
 
   keys = Object.keys value
 
@@ -279,23 +333,17 @@ module.exports = factory = (first, rest...) ->
 
   unless hasModifier
     # handle other inner objects like dates
-    return factories.equal key, value
+    return modifierFactories.$eq key, value
 
-  # form here on the value is an object with a modifier key
+  # FROM HERE ON THE VALUE IS AN OBJECT WITH AN INNER MODIFIER KEY
 
   innerValue = value[modifier]
   unless innerValue?
-    throw new Error "value undefined or null for key #{key} and modifier #{modifier}"
+    throw new Error "value undefined or null for key #{key} and modifier key #{modifier}"
 
-  switch modifier
-    when '$nin'
-      if innerValue.length is 0
-        throw Error '$nin with empty array'
-      factories.notIn key, innerValue
-    when '$lt' then factories.lowerThan key, innerValue
-    when '$lte' then factories.lowerThanEqual key, innerValue
-    when '$gt' then factories.greaterThan key, innerValue
-    when '$gte' then factories.greaterThanEqual key, innerValue
-    when '$ne' then factories.notEqual key, innerValue
-    when '$null' then factories.null key, innerValue
-    else throw new Error "unknown modifier: #{modifier}"
+  modifierFactory = modifierFactories[modifier]
+
+  if modifierFactory?
+    return modifierFactory key, innerValue
+
+  throw new Error "unknown modifier key #{modifier}"

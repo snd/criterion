@@ -20,76 +20,133 @@ module.exports =
 
     test.done()
 
-  'combine with and': (test) ->
-    fst = criterion {x: 7, y: 'foo'}
-    snd = criterion 'z = ?', true
+  'combining':
 
-    fstAndSnd = fst.and snd
+    'and': (test) ->
+      fst = criterion {x: 7, y: 'foo'}
+      snd = criterion 'z = ?', true
 
-    test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
-    test.deepEqual fstAndSnd.params(), [7, 'foo', true]
+      fstAndSnd = fst.and snd
 
-    test.done()
+      test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
+      test.deepEqual fstAndSnd.params(), [7, 'foo', true]
 
-  'combine with or': (test) ->
-    fst = criterion {x: 7, y: 'foo'}
-    snd = criterion 'z = ?', true
+      test.done()
 
-    sndOrFst = snd.or fst
+    'or': (test) ->
+      fst = criterion {x: 7, y: 'foo'}
+      snd = criterion 'z = ?', true
 
-    test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
-    test.deepEqual sndOrFst.params(), [true, 7, 'foo']
+      sndOrFst = snd.or fst
 
-    test.done()
+      test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
+      test.deepEqual sndOrFst.params(), [true, 7, 'foo']
 
-  'negate with not': (test) ->
-    c = criterion {x: 7, y: 'foo'}
+      test.done()
 
-    test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
-    test.deepEqual c.not().params(), [7, 'foo']
+    'not': (test) ->
+      c = criterion {x: 7, y: 'foo'}
 
-    test.done()
+      test.equal c.not().sql(), 'NOT ((x = ?) AND (y = ?))'
+      test.deepEqual c.not().params(), [7, 'foo']
 
-  'double negation is removed': (test) ->
-    c = criterion {x: 7, y: 'foo'}
+      test.done()
 
-    test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
-    test.deepEqual c.not().not().params(), [7, 'foo']
+    'double negation is removed': (test) ->
+      c = criterion {x: 7, y: 'foo'}
 
-    test.equal c.not().not().not().sql(), 'NOT ((x = ?) AND (y = ?))'
-    test.deepEqual c.not().not().not().params(), [7, 'foo']
+      test.equal c.not().not().sql(), '(x = ?) AND (y = ?)'
+      test.deepEqual c.not().not().params(), [7, 'foo']
 
-    test.done()
+      test.equal c.not().not().not().sql(), 'NOT ((x = ?) AND (y = ?))'
+      test.deepEqual c.not().not().not().params(), [7, 'foo']
 
-  'throw on':
+      test.done()
+
+  'errors':
 
     'not string or object': (test) ->
-      test.throws -> criterion 6
-      test.done()
+      try
+        criterion 6
+      catch e
+        test.equal e.message, 'string or object expected as first argument but number given'
+        test.done()
 
     'empty object': (test) ->
-      test.throws -> criterion {}
-      test.done()
+      try
+        criterion {}
+      catch e
+        test.equal e.message, 'empty query object'
+
+      try
+        criterion [{}]
+      catch e
+        test.equal e.message, 'empty query object'
+
+        test.done()
 
     'empty array param': (test) ->
-      test.throws -> criterion 'b < ? AND a IN(?) AND c < ?', 6, [], 7
-      test.done()
+      try
+        criterion 'b < ? AND a IN(?) AND c < ?', 6, [], 7
+      catch e
+        test.equal e.message, 'params[1] is an empty array'
+        test.done()
 
     'null value with modifier': (test) ->
-      test.throws -> criterion {x: {$lt: null}}
-      test.done()
+      try
+        criterion {x: {$lt: null}}
+      catch e
+        test.equal e.message, 'value undefined or null for key x and modifier key $lt'
+        test.done()
 
     'null value without modifier': (test) ->
-      test.throws -> criterion {x: null}
-      test.done()
+      try
+        criterion {x: null}
+      catch e
+        test.equal e.message, 'value undefined or null for key x'
+        test.done()
 
     'in with empty array': (test) ->
-      test.throws -> criterion {x: []}
-      test.done()
+      try
+        criterion {x: []}
+      catch e
+        test.equal e.message, '$in key with empty array value'
+        test.done()
 
     '$nin with empty array': (test) ->
-      test.throws -> criterion {x: {$nin: []}}
-      test.done()
+      try
+        criterion {x: {$nin: []}}
+      catch e
+        test.equal e.message, '$nin key with empty array value'
+        test.done()
+
+    '$any with array': (test) ->
+      try
+        criterion {x: {$any: [1]}}
+      catch e
+        test.equal e.message, "$any key doesn't support array value. only $in and $nin do!"
+        test.done()
+
+    '$any with number': (test) ->
+      try
+        criterion {x: {$any: 6}}
+      catch e
+        test.equal e.message, '$any key requires sql-fragment value (or array in case of $in and $nin)'
+        test.done()
+
+    'unknown modifier': (test) ->
+      try
+        criterion {x: {$not: 6}}
+      catch e
+        test.equal e.message, 'unknown modifier key $not'
+        test.done()
+
+    '$exists without sql-fragment': (test) ->
+      try
+        criterion {$exists: 6}
+      catch e
+        test.equal e.message, '$exists key requires sql-fragment value'
+        test.done()
 
   'queries':
 
@@ -111,7 +168,16 @@ module.exports =
 
       test.done()
 
-    'in': (test) ->
+    '$in': (test) ->
+      c = criterion {x: {$in: [1, 2, 3]}}
+
+      test.equal c.sql(), 'x IN (?, ?, ?)'
+      test.equal c.sql(escape), '"x" IN (?, ?, ?)'
+      test.deepEqual c.params(), [1, 2, 3]
+
+      test.done()
+
+    'shorthand for $in': (test) ->
       c = criterion {x: [1, 2, 3]}
 
       test.equal c.sql(), 'x IN (?, ?, ?)'
@@ -237,6 +303,60 @@ module.exports =
       test.equal c.sql(), '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
       test.equal c.sql(escape), '("username" = ?) AND ("password" = ?) AND (("active" = ?) OR ("active" IS NULL))'
       test.deepEqual c.params(), ["user", "hash", 1]
+
+      test.done()
+
+  'subquery':
+
+    '$exists without params': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
+      c = criterion {id: 7, $exists: subquery}
+
+      test.equal c.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active))'
+      test.equal c.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active"))'
+      test.deepEqual c.params(), [7]
+
+      test.done()
+
+    '$exists with params': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
+        params: ->
+          [true]
+      c = criterion {id: 7, $exists: subquery}
+
+      test.equal c.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active = ?))'
+      test.equal c.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active" = ?))'
+      test.deepEqual c.params(), [7, true]
+
+      test.done()
+
+    '$in without params': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
+      c = criterion {x: {$in: subquery}}
+
+      test.equal c.sql(), 'x IN (SELECT id FROM "user" WHERE is_active)'
+      test.equal c.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active")'
+      test.deepEqual c.params(), []
+
+      test.done()
+
+    '$in with params': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'} = ?"
+        params: ->
+          [true]
+      c = criterion {x: {$in: subquery}}
+
+      test.equal c.sql(), 'x IN (SELECT id FROM "user" WHERE is_active = ?)'
+      test.equal c.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
+      test.deepEqual c.params(), [true]
 
       test.done()
 
