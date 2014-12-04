@@ -211,8 +211,6 @@ module.exports =
               }
           }
 
-          console.log c.sql()
-
           test.equal c.sql(), '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR (((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?)) OR (NOT ((alpha = ?) OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
           test.equal c.sql(escape), '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR ((("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?)) OR (NOT ((alpha = ?) OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
           test.deepEqual c.params(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
@@ -320,6 +318,21 @@ module.exports =
           test.equal criterion({x: {$lteAll: subquery}}).sql(), 'x <= ALL (SELECT * FROM user)'
           test.equal criterion({x: {$gtAll: subquery}}).sql(), 'x > ALL (SELECT * FROM user)'
           test.equal criterion({x: {$gteAll: subquery}}).sql(), 'x >= ALL (SELECT * FROM user)'
+
+          test.done()
+
+        'row-wise comparison': (test) ->
+          subquery =
+            sql: (escape) ->
+              "SELECT #{escape 'created_at'} FROM #{escape 'message'} WHERE #{escape 'id'} = ?"
+            params: ->
+              [1]
+
+          c = criterion {is_active: true, created_at: {$lte: subquery}}
+
+          test.equal c.sql(), '(is_active = ?) AND (created_at <= (SELECT created_at FROM message WHERE id = ?))'
+          test.equal c.sql(escape), '("is_active" = ?) AND ("created_at" <= (SELECT "created_at" FROM "message" WHERE "id" = ?))'
+          test.deepEqual c.params(), [true, 1]
 
           test.done()
 
