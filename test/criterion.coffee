@@ -471,12 +471,12 @@ module.exports =
       try
         criterion {}
       catch e
-        test.equal e.message, 'empty query object'
+        test.equal e.message, 'empty condition-object'
 
       try
         criterion [{}]
       catch e
-        test.equal e.message, 'empty query object'
+        test.equal e.message, 'empty condition-object'
 
         test.done()
 
@@ -526,7 +526,7 @@ module.exports =
       try
         criterion {x: {$any: 6}}
       catch e
-        test.equal e.message, '$any key requires sql-fragment value (or array in case of $in and $nin)'
+        test.equal e.message, '$any key requires value that implements sql-fragment interface'
         test.done()
 
     'unknown modifier': (test) ->
@@ -546,5 +546,19 @@ module.exports =
       try
         criterion {$exists: 6}
       catch e
-        test.equal e.message, '$exists key requires sql-fragment value'
+        test.equal e.message, '$exists key requires value that implements sql-fragment interface'
+        test.done()
+
+    '$in without array or sql-fragment': (test) ->
+      try
+        criterion({x: {$in: 6}})
+      catch e
+        test.equal e.message, '$in key requires value that is an array or implements sql-fragment interface'
+        test.done()
+
+    '$nin without array or sql-fragment': (test) ->
+      try
+        criterion({x: {$nin: 6}})
+      catch e
+        test.equal e.message, '$nin key requires value that is an array or implements sql-fragment interface'
         test.done()
