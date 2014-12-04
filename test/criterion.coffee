@@ -6,7 +6,7 @@ module.exports =
 
   'making criteria':
 
-    'from query objects':
+    'from query-objects':
 
       'comparisons':
 
@@ -74,6 +74,15 @@ module.exports =
 
           test.done()
 
+        '$in': (test) ->
+          c = criterion {x: {$in: [1, 2, 3]}}
+
+          test.equal c.sql(), 'x IN (?, ?, ?)'
+          test.equal c.sql(escape), '"x" IN (?, ?, ?)'
+          test.deepEqual c.params(), [1, 2, 3]
+
+          test.done()
+
         '$nin': (test) ->
           c = criterion {x: {$nin: [1, 2, 3]}}
 
@@ -95,11 +104,29 @@ module.exports =
           test.done()
 
         'array of objects is joined with AND': (test) ->
-          c = criterion [{x: 7, y: 'foo'}, {z: 2.5}]
+          c = criterion [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]
 
-          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
-          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?)'
-          test.deepEqual c.params(), [7, 'foo', 2.5]
+          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND (a = ?)'
+          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND (a = ?)'
+          test.deepEqual c.params(), [7, 'foo', 2.5, 6]
+
+          test.done()
+
+        '$and with object': (test) ->
+          c = criterion {$and: {x: 7, y: 'foo'}}
+
+          test.equal c.sql(), '(x = ?) AND (y = ?)'
+          test.equal c.sql(escape), '("x" = ?) AND ("y" = ?)'
+          test.deepEqual c.params(), [7, 'foo']
+
+          test.done()
+
+        '$and with array': (test) ->
+          c = criterion {$and: [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
+
+          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND (a = ?)'
+          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND (a = ?)'
+          test.deepEqual c.params(), [7, 'foo', 2.5, 6]
 
           test.done()
 
@@ -113,11 +140,11 @@ module.exports =
           test.done()
 
         '$or with array': (test) ->
-          c = criterion {$or: [{x: 7}, {y: 'foo'}]}
+          c = criterion {$or: [{x: 7}, {y: 'foo'}, criterion('a = ?', 6)]}
 
-          test.equal c.sql(), '(x = ?) OR (y = ?)'
-          test.equal c.sql(escape), '("x" = ?) OR ("y" = ?)'
-          test.deepEqual c.params(), [7, 'foo']
+          test.equal c.sql(), '(x = ?) OR (y = ?) OR (a = ?)'
+          test.equal c.sql(escape), '("x" = ?) OR ("y" = ?) OR (a = ?)'
+          test.deepEqual c.params(), [7, 'foo', 6]
 
           test.done()
 
@@ -142,100 +169,161 @@ module.exports =
 
           test.done()
 
-    'subqueries':
+        '$or, AND and $not can be deeply nested': (test) ->
+          c = criterion {
+            $or: {
+              alpha: 1
+              $and: {
+                charlie: {$ne: 2}
+                $not: {
+                  $and: {
+                    $or: [
+                      {delta: 3},
+                      {delta: {$null: true}}
+                    ]
+                    echo: 4
+                  }
+                }
+              }
+              $or: [
+                [
+                  {echo: {$lt: 5}}
+                  {$or: {
+                    golf: 6
+                    $not: {lima: {$ne: 7}}
+                  }}
+                ]
+                {foxtrot: 8}
+              ]
+              $not: {
+                $or: [
+                  criterion('alpha = ?', 9)
+                  {$not: {echo: {$lt: 10}}}
+                  {alpha: {$lt: 11}}
+                  {bravo: 12}
+                  [
+                    {alpha: 13}
+                    {bravo: 14}
+                  ]
+                ]
+              }
+              bravo: 15
+              }
+          }
 
-      '$in without params': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
-        c = criterion {x: {$in: subquery}}
+          console.log c.sql()
 
-        test.equal c.sql(), 'x IN (SELECT id FROM "user" WHERE is_active)'
-        test.equal c.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active")'
-        test.deepEqual c.params(), []
+          test.equal c.sql(), '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR (((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?)) OR (NOT ((alpha = ?) OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
+          test.equal c.sql(escape), '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR ((("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?)) OR (NOT ((alpha = ?) OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
+          test.deepEqual c.params(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
-        test.done()
+          test.done()
 
-      '$in with params': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'} = ?"
-          params: ->
-            [true]
-        c = criterion {x: {$in: subquery}}
+      'subqueries':
 
-        test.equal c.sql(), 'x IN (SELECT id FROM "user" WHERE is_active = ?)'
-        test.equal c.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
-        test.deepEqual c.params(), [true]
+        'IN and $nin': (test) ->
+          subquery =
+            sql: (escape) ->
+              "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
 
-        test.done()
+          subqueryWithParams =
+            sql: (escape) ->
+              "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'} = ?"
+            params: ->
+              [true]
 
-      '$exists without params': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
-        c = criterion {id: 7, $exists: subquery}
+          inWithoutParams = criterion {x: {$in: subquery}}
 
-        test.equal c.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active))'
-        test.equal c.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active"))'
-        test.deepEqual c.params(), [7]
+          test.equal inWithoutParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active)'
+          test.equal inWithoutParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active")'
+          test.deepEqual inWithoutParams.params(), []
 
-        test.done()
+          inWithParams = criterion {x: {$in: subqueryWithParams}}
 
-      '$exists with params': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
-          params: ->
-            [true]
-        c = criterion {id: 7, $exists: subquery}
+          test.equal inWithParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active = ?)'
+          test.equal inWithParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
+          test.deepEqual inWithParams.params(), [true]
 
-        test.equal c.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active = ?))'
-        test.equal c.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active" = ?))'
-        test.deepEqual c.params(), [7, true]
+          ninWithoutParams = criterion {x: {$nin: subquery}}
 
-        test.done()
+          test.equal ninWithoutParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active)'
+          test.equal ninWithoutParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active")'
+          test.deepEqual ninWithoutParams.params(), []
 
-      '$any, $neAny, $ltAny, ...': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT * FROM #{escape "user"}"
+          ninWithParams = criterion {x: {$nin: subqueryWithParams}}
 
-        subqueryWithParams =
-          sql: (escape) ->
-            "SELECT * FROM #{escape "user"} WHERE #{escape "id"} = ?"
-          params: ->
-            [7]
+          test.equal ninWithParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active = ?)'
+          test.equal ninWithParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
+          test.deepEqual ninWithParams.params(), [true]
 
-        any = criterion {x: {$any: subquery}}
-        test.equal any.sql(), 'x = ANY (SELECT * FROM user)'
-        test.equal any.sql(escape), '"x" = ANY (SELECT * FROM "user")'
-        test.deepEqual any.params(), []
+          test.done()
 
-        anyWithParams = criterion {x: {$any: subqueryWithParams}, y: 6}
-        test.equal anyWithParams.sql(), '(x = ANY (SELECT * FROM user WHERE id = ?)) AND (y = ?)'
-        test.equal anyWithParams.sql(escape), '("x" = ANY (SELECT * FROM "user" WHERE "id" = ?)) AND ("y" = ?)'
-        test.deepEqual anyWithParams.params(), [7, 6]
+        '$exists without params': (test) ->
+          subquery =
+            sql: (escape) ->
+              "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
+          subqueryWithParams =
+            sql: (escape) ->
+              "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
+            params: ->
+              [true]
 
-        # since all other subqueries follow the same code path
-        # we omit testing with params and escaping for them
+          existsWithoutParams = criterion {id: 7, $exists: subquery}
 
-        test.equal criterion({x: {$neAny: subquery}}).sql(), 'x != ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$ltAny: subquery}}).sql(), 'x < ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$lteAny: subquery}}).sql(), 'x <= ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$gtAny: subquery}}).sql(), 'x > ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$gteAny: subquery}}).sql(), 'x >= ANY (SELECT * FROM user)'
+          test.equal existsWithoutParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active))'
+          test.equal existsWithoutParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active"))'
+          test.deepEqual existsWithoutParams.params(), [7]
 
-        test.equal criterion({x: {$all: subquery}}).sql(), 'x = ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$neAll: subquery}}).sql(), 'x != ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$ltAll: subquery}}).sql(), 'x < ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$lteAll: subquery}}).sql(), 'x <= ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$gtAll: subquery}}).sql(), 'x > ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$gteAll: subquery}}).sql(), 'x >= ALL (SELECT * FROM user)'
+          existsWithParams = criterion {id: 7, $exists: subqueryWithParams}
 
-        test.done()
+          test.equal existsWithParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active = ?))'
+          test.equal existsWithParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active" = ?))'
+          test.deepEqual existsWithParams.params(), [7, true]
 
-    'from raw sql':
+          test.done()
+
+        '$any, $neAny, $ltAny, $lteAny, $gtAny, $gteAny, $all, $neAll, $ltAll, $lteAll, $gtAll, $gteAll': (test) ->
+          subquery =
+            sql: (escape) ->
+              "SELECT * FROM #{escape "user"}"
+
+          subqueryWithParams =
+            sql: (escape) ->
+              "SELECT * FROM #{escape "user"} WHERE #{escape "id"} = ?"
+            params: ->
+              [7]
+
+          anyWithoutParams = criterion {x: {$any: subquery}}
+
+          test.equal anyWithoutParams.sql(), 'x = ANY (SELECT * FROM user)'
+          test.equal anyWithoutParams.sql(escape), '"x" = ANY (SELECT * FROM "user")'
+          test.deepEqual anyWithoutParams.params(), []
+
+          anyWithParams = criterion {x: {$any: subqueryWithParams}, y: 6}
+
+          test.equal anyWithParams.sql(), '(x = ANY (SELECT * FROM user WHERE id = ?)) AND (y = ?)'
+          test.equal anyWithParams.sql(escape), '("x" = ANY (SELECT * FROM "user" WHERE "id" = ?)) AND ("y" = ?)'
+          test.deepEqual anyWithParams.params(), [7, 6]
+
+          # since all other subqueries follow the same code path
+          # we omit testing with params and escaping for them
+
+          test.equal criterion({x: {$neAny: subquery}}).sql(), 'x != ANY (SELECT * FROM user)'
+          test.equal criterion({x: {$ltAny: subquery}}).sql(), 'x < ANY (SELECT * FROM user)'
+          test.equal criterion({x: {$lteAny: subquery}}).sql(), 'x <= ANY (SELECT * FROM user)'
+          test.equal criterion({x: {$gtAny: subquery}}).sql(), 'x > ANY (SELECT * FROM user)'
+          test.equal criterion({x: {$gteAny: subquery}}).sql(), 'x >= ANY (SELECT * FROM user)'
+
+          test.equal criterion({x: {$all: subquery}}).sql(), 'x = ALL (SELECT * FROM user)'
+          test.equal criterion({x: {$neAll: subquery}}).sql(), 'x != ALL (SELECT * FROM user)'
+          test.equal criterion({x: {$ltAll: subquery}}).sql(), 'x < ALL (SELECT * FROM user)'
+          test.equal criterion({x: {$lteAll: subquery}}).sql(), 'x <= ALL (SELECT * FROM user)'
+          test.equal criterion({x: {$gtAll: subquery}}).sql(), 'x > ALL (SELECT * FROM user)'
+          test.equal criterion({x: {$gteAll: subquery}}).sql(), 'x >= ALL (SELECT * FROM user)'
+
+          test.done()
+
+    'from sql-fragments':
 
       'without params': (test) ->
         c = criterion 'x IS NULL'
@@ -285,7 +373,7 @@ module.exports =
 
         test.done()
 
-    'from a mix of query objects and raw sql':
+    'from a mix of query-objects and sql-fragments':
 
       'equality with criterion argument': (test) ->
         c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
@@ -433,6 +521,12 @@ module.exports =
         criterion {x: {$not: 6}}
       catch e
         test.equal e.message, 'unknown modifier key $not'
+
+      try
+        criterion {x: {$foo: 6}}
+      catch e
+        test.equal e.message, 'unknown modifier key $foo'
+
         test.done()
 
     '$exists without sql-fragment': (test) ->
