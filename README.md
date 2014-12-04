@@ -5,14 +5,14 @@
 [![Dependencies](https://david-dm.org/snd/criterion.svg)](https://david-dm.org/snd/criterion)
 
 > criterion is a very flexible, powerful, yet simple solution for describing
-> and 
-> SQL-where-conditions as data (instead of strings)
+> and SQL-where-conditions as data (instead of strings) to make them easily
+> can be manipulated and composed.
 
 > criterion parses SQL-where-conditions from a mongodb-like query-language into
 > composable objects it can compile to SQL
 
-- [background and motivation](#background-and-motivation)
-  - [relevance for users of mesa and mohair](#relevance-for-users-of-mesa-and-mohair)
+- [background](#background)
+- [relevance for users of mesa and mohair](#relevance-for-users-of-mesa-and-mohair)
 - [get started](#get-started)
 - [reference by example](#reference-by-example)
   - [comparisons](#comparisons)
@@ -44,88 +44,32 @@
 - [changelog](#changelog)
 - [license: MIT](#license-mit)
 
-## background and motivation
+## background
 
-criterion is part of three libraries that strive to:
+criterion is part of three libraries for nodejs that strive to
 
-> make sql with nodejs [simple](http://www.infoq.com/presentations/Simple-Made-Easy), elegant, productive and FUN !
+> make SQL with Nodejs [simple](http://www.infoq.com/presentations/Simple-Made-Easy), elegant, productive and FUN !
 
-**[criterion](http://github.com/snd/criterion)** parses SQL-where-conditions from a mongodb-like query-language into
+#### [CRITERION](http://github.com/snd/criterion)
+
+parses SQL-where-conditions from a mongodb-like query-language into
 objects which it can compile to SQL
 
-**[mohair](http://github.com/snd/mohair)** is a powerful SQL-builder with a fluent interface.
-[mohair](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) to build and compose its SQL-where-clauses.
+#### [MOHAIR](http://github.com/snd/mohair)
 
-**[mesa](http://github.com/snd/mesa)** helps as much as possible with the construction, composition and execution of SQL-queries while not restricting full access to the database in any way.
-mesa is not an ORM !
-[mesa](http://github.com/snd/mesa) uses [mohair](http://github.com/snd/mohair) to build its SQL-queries.
-[mesa](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) (through [mohair](http://github.com/snd/mohair)) to build and compose its SQL-where-clauses.
+a powerful SQL-query-builder with a fluent, functional, side-effect-free API.
 
-### relevance for users of mesa and mohair
+uses [criterion](http://github.com/snd/criterion) to build and combine its SQL-where-clauses.
 
-[EVERYTHING that is possible with criterion](http://github.com/snd/criterion#reference-by-example) you can do in both
-[mesa](http://github.com/snd/mesa)
-and [mohair](http://github.com/snd/mohair): raw sql-fragments, scalar lists, subqueries, infinite nesting of boolean operators, ... - you name it !!!
+#### [MESA](http://github.com/snd/mesa)
 
-the **[criterion reference](http://github.com/snd/criterion#reference-by-example) completes mesa's and mohair's documentation ! here's how:**
+helps as much as possible with the construction, composition and execution of SQL-queries while not restricting full access to the database in any way.
 
-the criterion module exports a single function: `var criterion = require('criterion')` - let's call it `criterion()`.
+is not an ORM !
 
-[mesa's](http://github.com/snd/mesa) and [mohair's](http://github.com/snd/mohair) fluent `.where()` method
-calls `criterion()` under the hood and forwards its arguments **unmodifed** to `criterion()`.
+uses [mohair](http://github.com/snd/mohair) to build its SQL-queries.
 
-`.where()` functions **EXACTLY** as `criterion` with the difference that
-in
-
-``` js
-// same condition-object
-var condition = {x: 7};
-
-// criterion
-var criterion = require('criterion');
-var c = criterion(condition);
-c.sql();    // -> 'x = ?'
-c.params(); // -> [7]
-
-// mohair
-var mohair = require('mohair');
-var query = mohair
-  .table('post')
-  .where(condition);
-query.sql();    // -> 'SELECT * FROM post WHERE x = ?'
-query.params(); // -> [7]
-```
-
-if `.where()` is called more than once the resulting criteria are [ANDed](#combining-criteria-with-and) together:
-
-``` js
-var mohair = require('mohair');
-
-var queryAlpha = mohair
-  .table('post')
-  .where({x: 7});
-
-var queryBravo = queryAlpha
-  .where({y: [1, 2]});
-
-queryAlpha.sql();    // -> 'SELECT * FROM post WHERE x = ?'
-queryAlpha.params(); // -> [7]
-
-query.sql();  // -> 'SELECT * FROM post WHERE x = ? AND y IN (?, ?)'
-query.params(); // -> [7, 1, 2]
-```
-
-this is one of the nice properties of mohair and mesa.
-
-#### IMPORTANT !
-
-**
-this is the readme for criterion@0.4.0.
-criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
-it will be used very very soon !
-to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
-to see what has changed in 0.4.0 [click here](#changelog).
-**
+uses [criterion](http://github.com/snd/criterion) (through [mohair](http://github.com/snd/mohair)) to build and combine its SQL-where-clauses.
 
 ## get started
 
@@ -244,6 +188,82 @@ c.sql();        // -> 'x != LOG(y, ?)'
 c.params();     // -> [4]
 ```
 
+## relevance for users of mesa and mohair
+
+[EVERYTHING possible with criterion](http://github.com/snd/criterion#reference-by-example) is possible in
+[mesa](http://github.com/snd/mesa)
+and [mohair](http://github.com/snd/mohair) !
+
+the [criterion reference](http://github.com/snd/criterion#reference-by-example) completes mesa's and mohair's documentation !
+
+here's why:
+
+the criterion module exports a single function: `var criterion = require('criterion')`
+
+[mesa's](http://github.com/snd/mesa) and [mohair's](http://github.com/snd/mohair) fluent `.where()` methods
+call `criterion()` under the hood and forward all their arguments **unmodifed** to `criterion()`.
+this means that all arguments supported by `criterion()` are supported by `.where()` !
+
+``` js
+// same condition-object
+var condition = {x: 7};
+
+// criterion
+var criterion = require('criterion');
+var c = criterion(condition);
+c.sql();    // -> 'x = ?'
+c.params(); // -> [7]
+
+// mohair
+var mohair = require('mohair');
+var query = mohair
+  .table('post')
+  .where(condition);
+query.sql();    // -> 'SELECT * FROM post WHERE x = ?'
+query.params(); // -> [7]
+```
+
+if `.where()` is called more than once the resulting criteria are [ANDed](#combining-criteria-with-and) together:
+
+``` js
+var mohair = require('mohair');
+
+var postTable = mohair.table('post')
+var queryAlpha = postTable.where({x: 7});
+var queryBravo = queryAlpha.where('y IN (?)', [1, 2]);
+
+postTable.sql();
+// -> 'SELECT * FROM post'
+postTable.params();
+// -> []
+
+queryAlpha.sql();
+// -> 'SELECT * FROM post WHERE x = ?'
+queryAlpha.params();
+// -> [7]
+
+queryBravo.sql();
+// -> 'SELECT * FROM post WHERE x = ? AND y IN (?, ?)'
+queryBravo.params();
+// -> [7, 1, 2]
+```
+
+calling methods on does not but
+refines
+
+this is one of the nice properties of mohair and mesa.
+
+#### IMPORTANT !
+
+**
+this is the readme for criterion@0.4.0.
+criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
+it will be used very very soon !
+to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
+to see what has changed in 0.4.0 [click here](#changelog).
+**
+
+
 ## reference by example
 
 ### equal
@@ -291,13 +311,19 @@ c.params(); // -> [7, 'a']
 or
 
 ``` js
+var c = criterion([{x: 7}, {y: 'a'}]);
+```
+
+or
+
+``` js
 var c = criterion({$and: {x: 7, y: 'a'}});
 ```
 
 or
 
 ``` js
-var c = criterion([{x: 7}, {y: 'a'}]);
+var c = criterion({$and: [{x: 7}, {y: 'a'}]});
 ```
 
 or
