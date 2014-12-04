@@ -4,12 +4,16 @@
 [![Build Status](https://travis-ci.org/snd/criterion.svg?branch=master)](https://travis-ci.org/snd/criterion/branches)
 [![Dependencies](https://david-dm.org/snd/criterion.svg)](https://david-dm.org/snd/criterion)
 
-> criterion parses SQL-where-conditions from a mongodb-like query-language into
-> immutable composable objects which it can compile to SQL
+> criterion is a very flexible, powerful, yet simple solution for describing
+> and 
+> SQL-where-conditions as data (instead of strings)
 
-- [motivation](#motivation)
-  - [for users of mesa and mohair](#for-users-of-mesa-and-mohair)
-- [getting started](#getting-started)
+> criterion parses SQL-where-conditions from a mongodb-like query-language into
+> composable objects it can compile to SQL
+
+- [background and motivation](#background-and-motivation)
+  - [relevance for users of mesa and mohair](#relevance-for-users-of-mesa-and-mohair)
+- [get started](#get-started)
 - [reference by example](#reference-by-example)
   - [comparisons](#comparisons)
     - [equal](#equal)
@@ -40,36 +44,80 @@
 - [changelog](#changelog)
 - [license: MIT](#license-mit)
 
-## motivation
+## background and motivation
 
-criterion is part of three libraries with a shared goal:
+criterion is part of three libraries that strive to:
 
-> make sql with nodejs simple, elegant, productive and FUN !
+> make sql with nodejs [simple](http://www.infoq.com/presentations/Simple-Made-Easy), elegant, productive and FUN !
 
 **[criterion](http://github.com/snd/criterion)** parses SQL-where-conditions from a mongodb-like query-language into
 objects which it can compile to SQL
 
 **[mohair](http://github.com/snd/mohair)** is a powerful SQL-builder with a fluent interface.
-[mohair](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) to handle its SQL-where-clauses.
+[mohair](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) to build and compose its SQL-where-clauses.
 
-**[mesa](http://github.com/snd/mesa)** is not an ORM. it helps as much as possible with the construction, composition and execution of SQL-queries while not restricting full access to the underlying database in any way.
+**[mesa](http://github.com/snd/mesa)** helps as much as possible with the construction, composition and execution of SQL-queries while not restricting full access to the database in any way.
+mesa is not an ORM !
 [mesa](http://github.com/snd/mesa) uses [mohair](http://github.com/snd/mohair) to build its SQL-queries.
-[mesa](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) through [mohair](http://github.com/snd/mohair) to handle its SQL-where-clauses.
+[mesa](http://github.com/snd/mohair) uses [criterion](http://github.com/snd/criterion) (through [mohair](http://github.com/snd/mohair)) to build and compose its SQL-where-clauses.
 
-### for users of mesa and mohair
+### relevance for users of mesa and mohair
 
-the criterion module exports a single function: `var criterion = require('criterion')`.
-let's call that function `criterion()` !
+[EVERYTHING that is possible with criterion](http://github.com/snd/criterion#reference-by-example) you can do in both
+[mesa](http://github.com/snd/mesa)
+and [mohair](http://github.com/snd/mohair): raw sql-fragments, scalar lists, subqueries, infinite nesting of boolean operators, ... - you name it !!!
 
-[mohairs](http://github.com/snd/mohair) and [mesas](http://github.com/snd/mesa) fluent `.where()` methods call `criterion()` under-the-hood.
-`.where()` takes **EXACTLY** the same arguments as `criterion()` !
+the **[criterion reference](http://github.com/snd/criterion#reference-by-example) completes mesa's and mohair's documentation ! here's how:**
 
-you can do [EVERYTHING that is possible with criterion](http://github.com/snd/criterion#reference-by-example) in both **[mesa](http://github.com/snd/mesa)**
-and **[mohair](http://github.com/snd/mohair)**: raw sql-fragments, scalar lists, subqueries, infinite nesting of boolean operators, ... - you name it !!!
+the criterion module exports a single function: `var criterion = require('criterion')` - let's call it `criterion()`.
 
-when `.where()` is called more than once the resulting criteria are [ANDed](#combining-criteria-with-and) together.
+[mesa's](http://github.com/snd/mesa) and [mohair's](http://github.com/snd/mohair) fluent `.where()` method
+calls `criterion()` under the hood and forwards its arguments **unmodifed** to `criterion()`.
 
-#### IMPORTANT TEMPORARY DISCLAIMER:
+`.where()` functions **EXACTLY** as `criterion` with the difference that
+in
+
+``` js
+// same condition-object
+var condition = {x: 7};
+
+// criterion
+var criterion = require('criterion');
+var c = criterion(condition);
+c.sql();    // -> 'x = ?'
+c.params(); // -> [7]
+
+// mohair
+var mohair = require('mohair');
+var query = mohair
+  .table('post')
+  .where(condition);
+query.sql();    // -> 'SELECT * FROM post WHERE x = ?'
+query.params(); // -> [7]
+```
+
+if `.where()` is called more than once the resulting criteria are [ANDed](#combining-criteria-with-and) together:
+
+``` js
+var mohair = require('mohair');
+
+var queryAlpha = mohair
+  .table('post')
+  .where({x: 7});
+
+var queryBravo = queryAlpha
+  .where({y: [1, 2]});
+
+queryAlpha.sql();    // -> 'SELECT * FROM post WHERE x = ?'
+queryAlpha.params(); // -> [7]
+
+query.sql();  // -> 'SELECT * FROM post WHERE x = ? AND y IN (?, ?)'
+query.params(); // -> [7, 1, 2]
+```
+
+this is one of the nice properties of mohair and mesa.
+
+#### IMPORTANT !
 
 **
 this is the readme for criterion@0.4.0.
@@ -79,15 +127,15 @@ to see the readme for criterion@0.3.3 which is used by the newest mesa and mohai
 to see what has changed in 0.4.0 [click here](#changelog).
 **
 
-## getting started
+## get started
 
-install it:
+### install
 
 ```
 npm install criterion
 ```
 
-require it:
+### require
 
 ``` js
 var criterion = require('criterion');
@@ -95,13 +143,25 @@ var criterion = require('criterion');
 
 criterion exports a single `criterion()` function.
 
-`criterion()` can be called with either an query-object or an sql-fragment (a string of raw sql followed by some optional parameter bindings).
+`criterion()` can be called with either a [query-object](#query-objects)
+or an [sql-fragment](#sql-fragments):
 
-combining and nesting ...
+### definition: condition object
 
-query object:
+a **condition-object** is
 
-if `criterion()` is called with an object
+let's make a **condition-object**
+
+``` js
+var condition = {
+  x: 7,
+  y: 8
+};
+```
+
+``` js
+var c = criterion(condition);
+```
 
 the query language uses objects with special modifier keys to model conditions.
 
@@ -112,23 +172,51 @@ criterion is inspired by the
 a query-object describes an sql-where-condition.
 [see the reference below for the possible query objects.](#reference)
 
+
+### definition: raw sql
+
+**raw-sql** is a string of raw sql followed by some optional parameter bindings.
+for those rare cases where the query-object and you have to fall back to sql strings.
+
+a criterion made from **raw-sql** behaves exactly like one made from
+a **query-object**
+
+in fact both are sql-fragments
+
+### interface: sql fragments
+
+every object that 
+
+the sql function
+
+**any** criterion and **any** other object that responds to a `sql()` and optionally a `params()` method can
+be used in place of **any** value in a query object.
+this allows you to mix query objects with arbitrary sql:
+
+
+combining and nesting ...
+
+query object:
+
+if `criterion()` is called with an object
+
 let's make a query:
 
-```javascript
-var c = criterion({x: 7, y: 8});
-```
 
 sql and a list of parameter bindings can be generated
 from the object returned by criterion:
 
-```javascript
+
+you can even use a criterion build from a query-object as a fragment
+
+``` js
 c.sql();        // -> 'x = ? AND y = ?'
 c.params();     // -> [7, 8]
 ```
 
 alternatively criterion can be called with a string of **raw sql** and optional parameter bindings:
 
-```javascript
+``` js
 var c = criterion('x = ? AND Y = ?', 7, 8);
 
 c.sql();        // -> 'x = ? AND y = ?'
@@ -137,7 +225,7 @@ c.params();     // -> [7, 8]
 
 if a param is an array the corresponding binding `?` is exploded into a list of `?`:
 
-```javascript
+``` js
 var c = criterion('x = ? AND y IN (?)', 7, [8, 9, 10]);
 
 c.sql();        // -> 'x = ? AND y IN (?, ?, ?)'
@@ -149,11 +237,7 @@ c.sql();        // -> 'x = ? AND (y && ARRAY[?, ?, ?])'
 c.params();     // -> [7, 8, 9, 10]
 ```
 
-**any** criterion and **any** other object that responds to a `sql()` and optionally a `params()` method can
-be used in place of **any** value in a query object.
-this allows you to mix query objects with arbitrary sql:
-
-```javascript
+``` js
 var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 
 c.sql();        // -> 'x != LOG(y, ?)'
@@ -166,7 +250,7 @@ c.params();     // -> [4]
 
 where `x = 7`
 
-```javascript
+``` js
 var c = criterion({x: 7});
 c.sql();    // -> 'x = ?'
 c.params(); // -> [7]
@@ -174,7 +258,7 @@ c.params(); // -> [7]
 
 or
 
-```javascript
+``` js
 var c = criterion('x = ?', 7);
 ```
 
@@ -182,7 +266,7 @@ var c = criterion('x = ?', 7);
 
 where `x != 3`
 
-```javascript
+``` js
 var c = criterion({x: {$ne: 3}});
 c.sql();    // -> 'x != ?'
 c.params(); // -> [3]
@@ -190,7 +274,7 @@ c.params(); // -> [3]
 
 or
 
-```javascript
+``` js
 var c = criterion('x != ?', 3);
 ```
 
@@ -198,7 +282,7 @@ var c = criterion('x != ?', 3);
 
 where `x = 7` and `y = 'a'`
 
-```javascript
+``` js
 var c = criterion({x: 7, y: 'a'});
 c.sql();    // -> 'x = ? AND y = ?'
 c.params(); // -> [7, 'a']
@@ -206,19 +290,19 @@ c.params(); // -> [7, 'a']
 
 or
 
-```javascript
+``` js
 var c = criterion({$and: {x: 7, y: 'a'}});
 ```
 
 or
 
-```javascript
+``` js
 var c = criterion([{x: 7}, {y: 'a'}]);
 ```
 
 or
 
-```javascript
+``` js
 var c = criterion('x = ? AND y = ?', 7, 'a');
 ```
 
@@ -226,7 +310,7 @@ var c = criterion('x = ? AND y = ?', 7, 'a');
 
 where `x = 7` or `y = 6`
 
-```javascript
+``` js
 var c = criterion({$or: {x: 7, y: 6}});
 c.sql();    // -> 'x = ? OR y = ?'
 c.params(); // -> [7, 6]
@@ -234,13 +318,13 @@ c.params(); // -> [7, 6]
 
 or
 
-```javascript
+``` js
 var c = criterion({$or: [{x: 7}, {y: 6}]});
 ```
 
 or
 
-```javascript
+``` js
 var c = criterion('x = ? OR y = ?', 7, 6);
 ```
 
@@ -248,7 +332,7 @@ var c = criterion('x = ? OR y = ?', 7, 6);
 
 where not (`x > 3` and `y >= 4`)
 
-```javascript
+``` js
 var c = criterion({$not: {x: {$gt: 3}, y: {$gte: 4}}});
 c.sql();    // -> 'NOT (x > ? AND y >= ?)'
 c.params(); // -> [3, 4]
@@ -256,7 +340,7 @@ c.params(); // -> [3, 4]
 
 or
 
-```javascript
+``` js
 var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
 ```
 
@@ -267,7 +351,7 @@ var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
 
 where `(x > 10) AND (x < 20) AND (x != 17)
 
-```javascript
+``` js
 var subquery = mohair.table('post').where({title: 'criterion});
 
 var c = criterion({
@@ -295,13 +379,13 @@ c.params(); // -> [1,2,3]
 
 where `x < 3` and `y <= 4`
 
-```javascript
+``` js
 var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
 c.sql();    // -> 'x < ? AND y <= ?'
 c.params(); // -> [3, 4]
 ```
 or
-```javascript
+``` js
 var c = criterion('x < ? AND y <= ?', 3, 4);
 ```
 
@@ -309,7 +393,7 @@ var c = criterion('x < ? AND y <= ?', 3, 4);
 
 where `x > 3` and `y >= 4`
 
-```javascript
+``` js
 var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
 c.sql();    // -> 'x > ? AND y >= ?'
 c.params(); // -> [3, 4]
@@ -317,7 +401,7 @@ c.params(); // -> [3, 4]
 
 or
 
-```javascript
+``` js
 var c = criterion('x > ? AND y >= ?', 3, 4);
 ```
 
@@ -327,7 +411,7 @@ where `x` is between `5` and `10`
 
 example of raw sql
 
-```javascript
+``` js
 var c = criterion('x BETWEEN ? AND ?', 5, 10);
 c.sql();    // -> 'x BETWEEN ? AND ?'
 c.params(); // -> [5, 10]
@@ -339,7 +423,7 @@ where `x != LOG(y, 4)`
 
 example of raw sql combined with
 
-```javascript
+``` js
 var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 c.sql();    // -> 'x != (LOG(y, ?))'
 c.params(); // -> [4]
@@ -349,7 +433,7 @@ c.params(); // -> [4]
 
 where `x` is `null`
 
-```javascript
+``` js
 var c = criterion({x: {$null: true});
 c.sql();    // -> 'x IS NULL'
 c.params(); // -> []
@@ -357,7 +441,7 @@ c.params(); // -> []
 
 or
 
-```javascript
+``` js
 var c = criterion('x IS NULL');
 ```
 
@@ -365,7 +449,7 @@ var c = criterion('x IS NULL');
 
 where `x` is not `null`
 
-```javascript
+``` js
 var c = criterion({x: {$null: false}});
 c.sql();        // -> 'x IS NOT NULL'
 c.params();     // -> []
@@ -373,7 +457,7 @@ c.params();     // -> []
 
 or
 
-```javascript
+``` js
 var c = criterion('x IS NOT NULL');
 ```
 
@@ -381,7 +465,7 @@ var c = criterion('x IS NOT NULL');
 
 where `x` is in `[1, 2, 3]`
 
-```javascript
+``` js
 var c = criterion({x: [1, 2, 3]});
 c.sql();    // -> 'x IN (?, ?, ?)'
 c.params(); // -> [1,2,3]
@@ -389,13 +473,13 @@ c.params(); // -> [1,2,3]
 
 or
 
-```javascript
+``` js
 var c = criterion({x: {$in: [1, 2, 3]}});
 ```
 
 or
 
-```javascript
+``` js
 var c = criterion('x IN (?)', [1, 2, 3]);
 ```
 
@@ -405,7 +489,7 @@ var c = criterion('x IN (?)', [1, 2, 3]);
 
 where `x` is not in `[1, 2, 3]`
 
-```javascript
+``` js
 var c = criterion({x: {$nin: [1, 2, 3]}});
 c.sql();    // -> 'x NOT IN (?, ?, ?)'
 c.params(); // -> [1,2,3]
@@ -413,7 +497,7 @@ c.params(); // -> [1,2,3]
 
 or
 
-```javascript
+``` js
 var c = criterion('x NOT IN (?)', [1, 2, 3]);
 ```
 
@@ -423,7 +507,7 @@ var c = criterion('x NOT IN (?)', [1, 2, 3]);
 
 where `x` is in subquery
 
-```javascript
+``` js
 var subquery = mohair
   .table('post')
   .where({is_published: true})
@@ -445,7 +529,7 @@ object that has an `sql()` function!
 
 where `x` is in subquery
 
-```javascript
+``` js
 var subquery = mohair
   .table('post')
   .where({is_published: true})
@@ -463,7 +547,7 @@ object that has an `sql()` function!
 
 ### subquery returns any rows
 
-```javascript
+``` js
 # TODO this isnt right
 var subquery = mohair
   .table('post')
@@ -484,7 +568,7 @@ object that has an `sql()` function!
 
 ### compare to any in subquery
 
-```javascript
+``` js
 var subquery = mohair
   .table('post')
   .select('id')
@@ -511,7 +595,7 @@ object that has an `sql()` function!
 
 ### combining criteria with `and`
 
-```javascript
+``` js
 var alpha = criterion({x: 7, y: 'a'});
 var bravo = criterion('z = ?', true);
 
@@ -524,7 +608,7 @@ no method ever changes the object it is called on.
 
 ### combining criteria with `or`
 
-```javascript
+``` js
 var alpha = criterion({x: 7, y: 'a'});
 var bravo = criterion('z = ?', true);
 
@@ -537,7 +621,7 @@ no method ever changes the object it is called on.
 
 ### negating criteria with `not`
 
-```javascript
+``` js
 var c = criterion({x: 7, y: 'a'});
 c.not().sql();    // -> 'NOT ((x = ?) AND (y = ?))'
 c.not().params(); // -> [7, 'a']
@@ -545,7 +629,7 @@ c.not().params(); // -> [7, 'a']
 
 double negations are removed:
 
-```javascript
+``` js
 var c = criterion({x: 7, y: 'a'});
 c.not().not().sql();    // -> '(x = ?) AND (y = ?)'
 c.not().not().params(); // -> [7, 'a']
@@ -555,7 +639,7 @@ c.not().not().params(); // -> [7, 'a']
 
 you can pass a function into any `sql()` method to escape column names:
 
-```javascript
+``` js
 var c = criterion({x: 7, y: 8});
 
 var escape = function(x) {
@@ -563,46 +647,6 @@ var escape = function(x) {
 };
 c.sql(escape);  // -> '"x" = ? AND "y" = ?' <- x and y are escaped !
 c.params();     // -> [7, 8]
-```
-
-## for users of mesa and mohair
-
-[mohair](https://github.com/snd/mohair) uses criterion to handle where conditions.
-
-[mesa](https://github.com/snd/mesa) uses [mohair](https://github.com/snd/mohair) to
-build sql queries.
-
-mesa's and mohair's `where()` function accept exactly the same `arguments` as
-the `criterion` function returned by the criterion module:
-
-all the arguments
-
-``` js
-var argument = {x: 7};
-
-var criterion = require('criterion');
-var c = criterion(argument);
-c.sql();    // -> 'x = ?'
-c.params(); // -> [7]
-
-var mohair = require('mohair');
-var q = mohair.table('post').where(argument);
-q.sql();    // -> 'SELECT * FROM post WHERE x = ?'
-q.params(); // -> [7]
-```
-
-use the [reference](#reference-by-example) above
-to see all the kinds of uses
-[mesa](https://github.com/snd/mesa)
-and [mohair](https://github.com/snd/mohair)!
-
-calling mesa's and mohair's `where()` multiple times ANDs the criteria together:
-
-``` js
-var mohair = require('mohair');
-var q = mohair.table('post').where({x: 7}).where({y: [1, 2]})
-q.sql();    // -> 'SELECT * FROM post WHERE x = ? AND y IN (?, ?)'
-q.params(); // -> [7, 1, 2]
 ```
 
 ## changelog
@@ -626,6 +670,7 @@ q.params(); // -> [7, 1, 2]
 
 ## TODO
 
+- keep `isSqlFragment` but rename sql fragments to rawSql
 - sections in reference
   - boolean operators
 - document query nesting
