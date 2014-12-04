@@ -7,13 +7,14 @@
 > criterion is a very flexible, powerful, yet simple solution for describing
 > and SQL-where-conditions as data (instead of strings) to make them easily
 > can be manipulated and composed.
+> always drop down to raw-sql.
 
 > criterion parses SQL-where-conditions from a mongodb-like query-language into
 > composable objects it can compile to SQL
 
 - [background](#background)
-- [relevance for users of mesa and mohair](#relevance-for-users-of-mesa-and-mohair)
 - [get started](#get-started)
+- [for users of mesa and mohair](#for-users-of-mesa-and-mohair)
 - [reference by example](#reference-by-example)
   - [comparisons](#comparisons)
     - [equal](#equal)
@@ -48,7 +49,31 @@
 
 criterion is part of three libraries for nodejs that strive to
 
-> make SQL with Nodejs [simple](http://www.infoq.com/presentations/Simple-Made-Easy), elegant, productive and FUN !
+> make SQL with Nodejs
+> [simple](http://www.infoq.com/presentations/Simple-Made-Easy),
+> succinct,
+> DRY,
+> functional
+> data-driven
+> composable
+> flexible
+- free
+- close to the metal (sql, database, database-driver)
+- well documented
+- and FUN !
+
+- succinct 
+- FUN !
+
+short code
+
+high quality
+
+few lines of code
+
+well tested
+
+philosophy
 
 #### [CRITERION](http://github.com/snd/criterion)
 
@@ -85,55 +110,144 @@ npm install criterion
 var criterion = require('criterion');
 ```
 
-criterion exports a single `criterion()` function.
+criterion exports a single function `criterion()` which
+can be called either with a [condition-object](#condition-objects)
+or with [raw-sql](#raw-sql):
 
-`criterion()` can be called with either a [query-object](#query-objects)
-or an [sql-fragment](#sql-fragments):
+### condition-objects
 
-### definition: condition object
+a *condition-object* describes an SQL-where-condition
+as data using a *query-language* that is inspired by the
+[mongodb query language](http://docs.mongodb.org/manual/tutorial/query-documents/).
 
-a **condition-object** is
-
-let's make a **condition-object**
+let's make a *condition-object*:
 
 ``` js
 var condition = {
-  x: 7,
-  y: 8
+  a: 7,
+  b: {$lt: 5},
+  $not: {
+    $or: {
+      c: [1, 2, 3],
+      d: {$null: false}
+    }
+  }
 };
 ```
+
+you see that the *query-language* uses special *modifier-keys* to model comparisons (`$lt`), boolean operations (`$not`, `$or`)
+and [much much more](#reference-by-example) (not unlike the [mongodb query language](http://docs.mongodb.org/manual/tutorial/query-documents/)).
+
+now we can make a *criterion* from the *condition-object*:
 
 ``` js
 var c = criterion(condition);
 ```
 
-the query language uses objects with special modifier keys to model conditions.
+we can compile the *criterion* to SQL:
 
-criterion is inspired by the
-[mongodb query language](http://docs.mongodb.org/manual/tutorial/query-documents/)
+``` js
+c.sql();
+// ->
+// '(a = ?) AND
+//  (b < ?) AND NOT
+//  ((c IN (?, ?, ?)) OR (d IS NOT NULL))'
+```
+
+we can also get the bound parameters of the *criterion*:
+
+```js
+c.params();
+// -> [7, 5, 1, 2, 3]
+```
+
+[see the reference below for examples on how to model almost every SQL-where-condition with *condition-objects* !](#reference-by-example)
+
+### raw-sql
+
+*raw-sql* is a string of sql followed by some optional parameter bindings:
+for those rare cases where condition-objects and you have to fall back to sql strings.
+
+``` js
+var c = criterion('LOG(y, ?)', 4);
+```
+
+a criterion made from *raw-sql* behaves exactly like one made from
+a *condition-object*:
+
+you can get the sql:
+
+```js
+c.sql();
+// -> 'LOG(y, ?)'
+```
+
+...and the bound parameters:
+
+```js
+c.params();
+// -> [4]
+```
+
+in fact both the criterion made from *raw-sql* and one made from
+a *condition-object* are *sql-fragments*:
+
+### sql-fragments
+
+in
+[mesa](http://github.com/snd/mesa),
+[mohair](http://github.com/snd/mohair)
+and
+[criterion](http://github.com/snd/criterion)
+every object that has a `.sql()` method and optionally a `.params()` method
+is said to "be an *sql-fragment*" or "to implement the *sql-fragment* interface".
+
+#### sql-fragment interface
+
+more precisely:
+
+- method `.sql()` 
+  - mandatory
+  - must return a string of valid SQL
+  - one argument `escape`
+    - sometimes present, sometimes not
+    - if present must be a function of `String -> String`
+    - if present should be called to transform table- and column-names on the SQL string that would be returned
+      - if `.sql()` constructs the SQL on-the-fly that should be easy
+      - with *raw-sql* this is very complex, ambigous, not worth the effort and not required
+- method `.params()`
+  - optional
+  - must return an array
+  - no arguments
+
+#### things that are sql-fragments
+
+- EVERY *criterion*:
+  - `criterion({x: 7})`
+  - `criterion('LOG(y, ?)', 4)`
+- EVERY [mesa](http://github.com/snd/mesa)-query or [mohair](http://github.com/snd/mohair)-query:
+  - `mesa.table('post')`
+  - `mesa.table('post').where({id: 7})`
+  - `mohair.table('host')`
+  - `mohair.table('host').select('name').where({created_at: {$lt: new Date()}})`
+- EVERY return value of [mesa's](http://github.com/snd/mesa) or [mohair's](http://github.com/snd/mohair) `.raw()` method:
+  - `mesa.raw('LOG(y, ?)', 4)`
+  - `mohair.raw('LOG(y, ?)', 4)`
+- EVERY object you create that implements the [sql-fragment interface](#sql-fragment-interface)
+
+#### mixing sql-fragments and query-objects
+
+now to the FUN part:
 
 
-a query-object describes an sql-where-condition.
-[see the reference below for the possible query objects.](#reference)
 
+``` js
+var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 
-### definition: raw sql
+c.sql();        // -> 'x != LOG(y, ?)'
+c.params();     // -> [4]
+```
 
-**raw-sql** is a string of raw sql followed by some optional parameter bindings.
-for those rare cases where the query-object and you have to fall back to sql strings.
-
-a criterion made from **raw-sql** behaves exactly like one made from
-a **query-object**
-
-in fact both are sql-fragments
-
-### interface: sql fragments
-
-every object that 
-
-the sql function
-
-**any** criterion and **any** other object that responds to a `sql()` and optionally a `params()` method can
 be used in place of **any** value in a query object.
 this allows you to mix query objects with arbitrary sql:
 
@@ -147,16 +261,7 @@ if `criterion()` is called with an object
 let's make a query:
 
 
-sql and a list of parameter bindings can be generated
-from the object returned by criterion:
-
-
 you can even use a criterion build from a query-object as a fragment
-
-``` js
-c.sql();        // -> 'x = ? AND y = ?'
-c.params();     // -> [7, 8]
-```
 
 alternatively criterion can be called with a string of **raw sql** and optional parameter bindings:
 
@@ -166,6 +271,8 @@ var c = criterion('x = ? AND Y = ?', 7, 8);
 c.sql();        // -> 'x = ? AND y = ?'
 c.params();     // -> [7, 8]
 ```
+
+### param array explosion
 
 if a param is an array the corresponding binding `?` is exploded into a list of `?`:
 
@@ -181,16 +288,10 @@ c.sql();        // -> 'x = ? AND (y && ARRAY[?, ?, ?])'
 c.params();     // -> [7, 8, 9, 10]
 ```
 
-``` js
-var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
+## for users of mesa and mohair
 
-c.sql();        // -> 'x != LOG(y, ?)'
-c.params();     // -> [4]
-```
-
-## relevance for users of mesa and mohair
-
-[EVERYTHING possible with criterion](http://github.com/snd/criterion#reference-by-example) is possible in
+[EVERYTHING possible with criterion](http://github.com/snd/criterion#reference-by-example) is possible
+for the where conditions in
 [mesa](http://github.com/snd/mesa)
 and [mohair](http://github.com/snd/mohair) !
 
@@ -696,14 +797,12 @@ c.params();     // -> [7, 8]
 
 ## TODO
 
-- keep `isSqlFragment` but rename sql fragments to rawSql
 - sections in reference
   - boolean operators
 - document query nesting
   - document that you can intersperse sql fragments in $or and $and
 - "you can use sql-fragments pretty much anywhere"
-- if some combination that you think should work doesnt work make an issue
+- if some combination that you think should work doesnt work file an issue
+  and if it makes sense i'll make it work !
 - document row-wise comparison
   - document all places where subqueries can be used
-- get the wording right everywhere
-  - sql fragment or raw sql...
