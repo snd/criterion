@@ -118,7 +118,7 @@ prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
     if isSqlFragment @_value
       # put fragment in parentheses
-      "#{escape @_key} #{@_operator} (#{@_value.sql()})"
+      "#{escape @_key} #{@_operator} (#{@_value.sql(escape)})"
     else
       "#{escape @_key} #{@_operator} ?"
   params: ->
