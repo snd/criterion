@@ -60,6 +60,14 @@ some = (
 flatten = (array) ->
   [].concat array...
 
+# sql-fragments are treated differently in many situations
+
+implementsSqlFragmentInterface = (value) ->
+  value? and 'function' is typeof value.sql
+
+getSqlFragmentParams = (fragment) ->
+  fragment.params?() or []
+
 ###################################################################################
 # PROTOTYPES AND FACTORIES
 
@@ -80,16 +88,9 @@ prototypes.base =
   or: (other) -> factories.or [@, other]
 
 ###################################################################################
-# sql fragment
+# raw sql
 
-# criterion treats values in comparisons which are objects
-# which have a sql property that is a function in a special way:
-# by pasting the raw sql unmodified at the correct position
-
-isSqlFragment = (value) ->
-  value? and 'function' is typeof value.sql
-
-prototypes.sqlFragment = beget prototypes.base,
+prototypes.rawSql = beget prototypes.base,
   sql: ->
     unless @_params
       return @_sql
@@ -110,22 +111,22 @@ prototypes.sqlFragment = beget prototypes.base,
       flatten @_params
 
 # params are entirely optional
-factories.sqlFragment = (sql, params) ->
-  beget prototypes.sqlFragment, {_sql: sql, _params: params}
+factories.rawSql = (sql, params) ->
+  beget prototypes.rawSql, {_sql: sql, _params: params}
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
 
 prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
-    if isSqlFragment @_value
+    if implementsSqlFragmentInterface @_value
       # put fragment in parentheses
       "#{escape @_key} #{@_operator} (#{@_value.sql(escape)})"
     else
       "#{escape @_key} #{@_operator} ?"
   params: ->
-    if isSqlFragment @_value
-      @_value.params?() or []
+    if implementsSqlFragmentInterface @_value
+      getSqlFragmentParams @_value
     else
       [@_value]
 
@@ -180,11 +181,11 @@ prototypes.exists = beget prototypes.base,
   sql: (escape = identity) ->
     "EXISTS (#{@_value.sql escape})"
   params: ->
-    @_value.params?() or []
+    getSqlFragmentParams @_value
 
 factories.exists = (value) ->
-  unless isSqlFragment value
-    throw new Error '$exists key requires sql-fragment value'
+  unless implementsSqlFragmentInterface value
+    throw new Error '$exists key requires value that implements sql-fragment interface'
   beget prototypes.exists, {_value: value}
 
 ###################################################################################
@@ -192,16 +193,17 @@ factories.exists = (value) ->
 
 prototypes.subquery = beget prototypes.base,
   sql: (escape = identity) ->
-    if isSqlFragment @_value
+    if implementsSqlFragmentInterface @_value
       "#{escape @_key} #{@_operator} (#{@_value.sql escape})"
     else
       questionMarks = []
       @_value.forEach -> questionMarks.push '?'
       "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
   params: ->
-    if isSqlFragment @_value
-      @_value.params?() or []
+    if implementsSqlFragmentInterface @_value
+      getSqlFragmentParams @_value
     else
+      # only for $in and $nin. is an array then.
       @_value
 
 subqueryNameToOperatorMapping =
@@ -230,9 +232,13 @@ for name, operator of subqueryNameToOperatorMapping
         else
           # only $in and $nin support arrays
           throw new Error "#{name} key doesn't support array value. only $in and $nin do!"
+      # not array
       else
-        unless isSqlFragment value
-          throw new Error "#{name} key requires sql-fragment value (or array in case of $in and $nin)"
+        unless implementsSqlFragmentInterface value
+          if name in ['$in', '$nin']
+            throw new Error "#{name} key requires value that is an array or implements sql-fragment interface"
+          else
+            throw new Error "#{name} key requires value that implements sql-fragment interface"
 
       beget prototypes.subquery, {_key: key, _value: value, _operator: operator}
 
@@ -263,23 +269,23 @@ factories.or = (criteria) ->
 # function that recursively constructs the object graph
 # of the criterion described by the arguments.
 
-module.exports = mainFactory = (first, rest...) ->
-  if isSqlFragment first
-    return first
+module.exports = criterionFactory = (firstArg, restArgs...) ->
+  if implementsSqlFragmentInterface firstArg
+    return firstArg
 
-  type = typeof first
+  typeOfFirstArg = typeof firstArg
 
   # invalid arguments?
-  unless 'string' is type or 'object' is type
-    throw new Error "string or object expected as first argument but #{type} given"
+  unless 'string' is typeOfFirstArg or 'object' is typeOfFirstArg
+    throw new Error "string or object expected as first argument but #{typeOfFirstArg} given"
 
-  # sql fragment with optional params?
-  if type is 'string'
+  # raw sql string with optional params?
+  if typeOfFirstArg is 'string'
 
     # make sure that no param is an empty array
 
     emptyArrayParam = some(
-      rest
+      restArgs
       (x, i) -> {x: x, i: i}
       ({x, i}) -> isEmptyArray x
     )
@@ -287,42 +293,45 @@ module.exports = mainFactory = (first, rest...) ->
     if emptyArrayParam?
       throw new Error "params[#{emptyArrayParam.i}] is an empty array"
 
-    # all good
-    return factories.sqlFragment first, rest
+    # valid raw sql !
+    return factories.rawSql firstArg, restArgs
 
-  # array of query objects?
-  if Array.isArray first
-    if first.length is 0
-      throw new Error 'empty query object'
+  # array of condition objects?
+  if Array.isArray firstArg
+    if firstArg.length is 0
+      throw new Error 'condition-object is an empty array'
     # let's AND them together
-    return factories.and first.map mainFactory
+    return factories.and firstArg.map criterionFactory
 
-  keyCount = Object.keys(first).length
+  # FROM HERE ON `firstArg` IS A CONDITION OBJECT
+
+  keyCount = Object.keys(firstArg).length
 
   if 0 is keyCount
-    throw new Error 'empty query object'
+    throw new Error 'empty condition-object'
 
-  # if there is more than one key in the query object
+  # if there is more than one key in the condition-object
   # cut it up into objects with one key and AND them together
   if keyCount > 1
-    return factories.and explodeObject(first).map mainFactory
+    return factories.and explodeObject(firstArg).map criterionFactory
 
-  # FROM HERE ON WE HAVE AN OBJECT WITH EXACTLY ONE KEY-VALUE-MAPPING
+  key = Object.keys(firstArg)[0]
+  value = firstArg[key]
 
-  key = Object.keys(first)[0]
-  value = first[key]
+  # FROM HERE ON `firstArg` IS A CONDITION-OBJECT WITH EXACTLY ONE KEY-VALUE-MAPPING:
+  # `key` MAPS TO `value`
 
   unless value?
     throw new Error "value undefined or null for key #{key}"
 
   if key is '$and'
-    return factories.and explodeObject(value).map mainFactory
+    return factories.and explodeObject(value).map criterionFactory
 
   if key is '$or'
-    return factories.or explodeObject(value).map mainFactory
+    return factories.or explodeObject(value).map criterionFactory
 
   if key is '$not'
-    return factories.not mainFactory value
+    return factories.not criterionFactory value
 
   if key is '$exists'
     return factories.exists value
@@ -330,25 +339,26 @@ module.exports = mainFactory = (first, rest...) ->
   unless 'object' is typeof value
     return modifierFactories.$eq key, value
 
-  # FROM HERE ON VALUE IS AN OBJECT
-
   # {x: [1, 2, 3]} is a shorthand for {x: {$in: [1, 2, 3]}}
   if Array.isArray value
     return modifierFactories.$in key, value
 
+  # FROM HERE ON `value` IS AN OBJECT AND NOT A NUMBER, STRING, ARRAY, ...
+
   keys = Object.keys value
 
-  modifier = keys[0]
-
-  hasModifier = keys.length is 1 and 0 is modifier.indexOf '$'
+  hasModifier = keys.length is 1 and 0 is keys[0].indexOf '$'
 
   unless hasModifier
-    # handle other inner objects like dates
+    # handle other objects which are values but have no modifiers
+    # (dates for example) like primitives (strings, numbers)
     return modifierFactories.$eq key, value
 
-  # FROM HERE ON THE VALUE IS AN OBJECT WITH AN INNER MODIFIER KEY
-
+  modifier = keys[0]
   innerValue = value[modifier]
+
+  # FROM HERE ON `value` IS AN OBJECT WITH A `modifier` KEY AND an `innerValue`
+
   unless innerValue?
     throw new Error "value undefined or null for key #{key} and modifier key #{modifier}"
 
