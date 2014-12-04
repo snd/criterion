@@ -314,6 +314,9 @@ module.exports = mainFactory = (first, rest...) ->
   unless value?
     throw new Error "value undefined or null for key #{key}"
 
+  if key is '$and'
+    return factories.and explodeObject(value).map mainFactory
+
   if key is '$or'
     return factories.or explodeObject(value).map mainFactory
 
