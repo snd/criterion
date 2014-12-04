@@ -1,7 +1,7 @@
 {
   "name": "criterion",
-  "version": "0.3.4",
-  "description": "criterion parses SQL-where-conditions from a mongodb-like query-language into composable objects which it can then compile to SQL",
+  "version": "0.4.0",
+  "description": "criterion parses SQL-where-conditions from a mongodb-like query-language into immutable composable objects which it can then compile to SQL",
   "keywords": [
     "sql",
     "condition",
@@ -13,7 +13,10 @@
     "compiler",
     "builder",
     "dsl",
-    "language"
+    "language",
+    "immutable",
+    "postgres",
+    "orm"
   ],
   "homepage": "http://github.com/snd/criterion",
   "author": {
