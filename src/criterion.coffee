@@ -15,6 +15,7 @@ beget = (proto, properties) ->
 
 # if `thing` is an array return `thing`
 # otherwise return an array of all key value pairs in `thing` as objects
+# example: explodeObject({a: 1, b: 2}) -> [{a: 1}, {b: 2}]
 
 explodeObject = (arrayOrObject) ->
   if Array.isArray arrayOrObject
@@ -35,8 +36,7 @@ identity = (x) ->
 isEmptyArray = (x) ->
   Array.isArray(x) and x.length is 0
 
-# calls iterator for the values in array in sequence.
-# calls iterator with the index as second argument.
+# calls iterator for the values in array in sequence (with the index as the second argument).
 # returns the first value returned by iterator for which predicate returns true.
 # otherwise returns sentinel.
 
@@ -55,22 +55,24 @@ some = (
     i++
   return sentinel
 
+# flatten array one level
+
 flatten = (array) ->
   [].concat array...
 
 ###################################################################################
 # PROTOTYPES AND FACTORIES
 
-# prototype objects for the objects that describe parts of sql-where-conditions
+# prototype objects for the objects that describe parts of sql-where-conditions.
 # as well as factory functions that make such objects by prototypically
-# inheriting from the prototypes
+# inheriting from the prototypes.
 
 prototypes = {}
 factories = {}
 modifierFactories = {}
 
 # the base prototype for all other prototypes
-# as all objects should have the logical operators not, and and or
+# as all objects should have the logical operators not, and and or.
 
 prototypes.base =
   not: -> factories.not @
@@ -107,7 +109,7 @@ prototypes.sqlFragment = beget prototypes.base,
     if @_params
       flatten @_params
 
-# params are optional
+# params are entirely optional
 factories.sqlFragment = (sql, params) ->
   beget prototypes.sqlFragment, {_sql: sql, _params: params}
 
@@ -230,7 +232,6 @@ for name, operator of subqueryNameToOperatorMapping
           throw new Error "#{name} key doesn't support array value. only $in and $nin do!"
       else
         unless isSqlFragment value
-          # TODO improve this error message
           throw new Error "#{name} key requires sql-fragment value (or array in case of $in and $nin)"
 
       beget prototypes.subquery, {_key: key, _value: value, _operator: operator}
@@ -259,8 +260,8 @@ factories.or = (criteria) ->
 ###################################################################################
 # MAIN FACTORY
 
-# function that recursively construct the object graph
-# of the criterion described by the arguments
+# function that recursively constructs the object graph
+# of the criterion described by the arguments.
 
 module.exports = mainFactory = (first, rest...) ->
   if isSqlFragment first
@@ -272,7 +273,7 @@ module.exports = mainFactory = (first, rest...) ->
   unless 'string' is type or 'object' is type
     throw new Error "string or object expected as first argument but #{type} given"
 
-  # sql fragment with optional bindings?
+  # sql fragment with optional params?
   if type is 'string'
 
     # make sure that no param is an empty array
