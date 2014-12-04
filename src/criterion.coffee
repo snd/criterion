@@ -55,6 +55,9 @@ some = (
     i++
   return sentinel
 
+flatten = (array) ->
+  [].concat array...
+
 ###################################################################################
 # PROTOTYPES AND FACTORIES
 
@@ -75,16 +78,16 @@ prototypes.base =
   or: (other) -> factories.or [@, other]
 
 ###################################################################################
-# raw sql fragment
+# sql fragment
 
 # criterion treats values in comparisons which are objects
 # which have a sql property that is a function in a special way:
 # by pasting the raw sql unmodified at the correct position
 
-isRawSqlFragment = (value) ->
+isSqlFragment = (value) ->
   value? and 'function' is typeof value.sql
 
-prototypes.raw = beget prototypes.base,
+prototypes.sqlFragment = beget prototypes.base,
   sql: ->
     unless @_params
       return @_sql
@@ -102,24 +105,24 @@ prototypes.raw = beget prototypes.base,
 
   params: ->
     if @_params
-      [].concat @_params...
+      flatten @_params
 
 # params are optional
-factories.raw = (sql, params) ->
-  beget prototypes.raw, {_sql: sql, _params: params}
+factories.sqlFragment = (sql, params) ->
+  beget prototypes.sqlFragment, {_sql: sql, _params: params}
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
 
 prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
-    if isRawSqlFragment @_value
-      # put raw sql in parentheses
+    if isSqlFragment @_value
+      # put fragment in parentheses
       "#{escape @_key} #{@_operator} (#{@_value.sql()})"
     else
       "#{escape @_key} #{@_operator} ?"
   params: ->
-    if isRawSqlFragment @_value
+    if isSqlFragment @_value
       @_value.params?() or []
     else
       [@_value]
@@ -178,7 +181,7 @@ prototypes.exists = beget prototypes.base,
     @_value.params?() or []
 
 factories.exists = (value) ->
-  unless isRawSqlFragment value
+  unless isSqlFragment value
     throw new Error '$exists key requires sql-fragment value'
   beget prototypes.exists, {_value: value}
 
@@ -187,14 +190,14 @@ factories.exists = (value) ->
 
 prototypes.subquery = beget prototypes.base,
   sql: (escape = identity) ->
-    if isRawSqlFragment @_value
+    if isSqlFragment @_value
       "#{escape @_key} #{@_operator} (#{@_value.sql escape})"
     else
       questionMarks = []
       @_value.forEach -> questionMarks.push '?'
       "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
   params: ->
-    if isRawSqlFragment @_value
+    if isSqlFragment @_value
       @_value.params?() or []
     else
       @_value
@@ -226,7 +229,7 @@ for name, operator of subqueryNameToOperatorMapping
           # only $in and $nin support arrays
           throw new Error "#{name} key doesn't support array value. only $in and $nin do!"
       else
-        unless isRawSqlFragment value
+        unless isSqlFragment value
           # TODO improve this error message
           throw new Error "#{name} key requires sql-fragment value (or array in case of $in and $nin)"
 
@@ -242,8 +245,10 @@ prototypes.combination = beget prototypes.base,
 
   params: ->
     params = []
-    @_criteria.forEach (c) -> params = params.concat c.params()
-    params
+    @_criteria.forEach (c) ->
+      if c.params?
+        params = params.concat c.params()
+    return params
 
 factories.and = (criteria) ->
   beget prototypes.combination, {_criteria: criteria, _operator: 'AND'}
@@ -264,7 +269,7 @@ module.exports = mainFactory = (first, rest...) ->
   unless 'string' is type or 'object' is type
     throw new Error "string or object expected as first argument but #{type} given"
 
-  # raw sql with optional bindings?
+  # sql fragment with optional bindings?
   if type is 'string'
 
     # make sure that no param is an empty array
@@ -279,7 +284,7 @@ module.exports = mainFactory = (first, rest...) ->
       throw new Error "params[#{emptyArrayParam.i}] is an empty array"
 
     # all good
-    return factories.raw first, rest
+    return factories.sqlFragment first, rest
 
   # array of query objects?
   if Array.isArray first
