@@ -263,6 +263,9 @@ factories.or = (criteria) ->
 # of the criterion described by the arguments
 
 module.exports = mainFactory = (first, rest...) ->
+  if isSqlFragment first
+    return first
+
   type = typeof first
 
   # invalid arguments?
