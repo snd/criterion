@@ -117,6 +117,8 @@ prototypes.rawSql = beget prototypes.base,
   params: ->
     if @_params
       flatten @_params
+    else
+      []
 
 # params are entirely optional
 # casts to sql-fragment
