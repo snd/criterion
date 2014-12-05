@@ -1,10 +1,17 @@
+# this is later exported as module.exports.internals
+# to make the internals available to mesa, mohair
+# and any other module that needs them
+internals = {}
+
 ###################################################################################
 # HELPERS
+
+internals.helper = helper = {}
 
 # return a new object which has `proto` as its prototype and
 # all properties in `properties` as its own properties.
 
-beget = (proto, properties) ->
+helper.beget = beget = (proto, properties) ->
   object = Object.create proto
 
   if properties?
@@ -17,7 +24,7 @@ beget = (proto, properties) ->
 # otherwise return an array of all key value pairs in `thing` as objects
 # example: explodeObject({a: 1, b: 2}) -> [{a: 1}, {b: 2}]
 
-explodeObject = (arrayOrObject) ->
+helper.explodeObject = explodeObject = (arrayOrObject) ->
   if Array.isArray arrayOrObject
     return arrayOrObject
 
@@ -30,17 +37,17 @@ explodeObject = (arrayOrObject) ->
 
   return array
 
-identity = (x) ->
+helper.identity = identity = (x) ->
   x
 
-isEmptyArray = (x) ->
+helper.isEmptyArray = isEmptyArray = (x) ->
   Array.isArray(x) and x.length is 0
 
 # calls iterator for the values in array in sequence (with the index as the second argument).
 # returns the first value returned by iterator for which predicate returns true.
 # otherwise returns sentinel.
 
-some = (
+helper.some = some = (
   array
   iterator = identity
   predicate = (x) -> x?
@@ -57,30 +64,31 @@ some = (
 
 # flatten array one level
 
-flatten = (array) ->
+helper.flatten = flatten = (array) ->
   [].concat array...
 
 # sql-fragments are treated differently in many situations
 
-implementsSqlFragmentInterface = (value) ->
+helper.implementsSqlFragmentInterface = implementsSqlFragmentInterface = (value) ->
   value? and 'function' is typeof value.sql
 
-getSqlFragmentParams = (fragment) ->
+helper.getSqlFragmentParams = getSqlFragmentParams = (fragment) ->
   fragment.params?() or []
 
 ###################################################################################
 # PROTOTYPES AND FACTORIES
 
-# prototype objects for the objects that describe parts of sql-where-conditions.
-# as well as factory functions that make such objects by prototypically
-# inheriting from the prototypes.
+# prototype objects for the objects that describe parts of sql-where-conditions
 
-prototypes = {}
-factories = {}
-modifierFactories = {}
+internals.prototypes = prototypes = {}
 
-# the base prototype for all other prototypes
-# as all objects should have the logical operators not, and and or.
+# factory functions that make such objects by prototypically inheriting from the prototypes
+
+internals.factories = factories = {}
+internals.modifierFactories = modifierFactories = {}
+
+# the base prototype for all other prototypes:
+# all objects should have the logical operators not, and and or
 
 prototypes.base =
   not: -> factories.not @
@@ -111,6 +119,7 @@ prototypes.rawSql = beget prototypes.base,
       flatten @_params
 
 # params are entirely optional
+# casts to sql-fragment
 factories.rawSql = (sql, params) ->
   beget prototypes.rawSql, {_sql: sql, _params: params}
 
@@ -368,3 +377,7 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
     return modifierFactory key, innerValue
 
   throw new Error "unknown modifier key #{modifier}"
+
+# make the internals available to mesa, mohair
+# and any other module that needs them
+module.exports.internals = internals
