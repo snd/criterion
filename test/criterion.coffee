@@ -6,7 +6,7 @@ module.exports =
 
   'making criteria':
 
-    'from query-objects':
+    'from condition-objects':
 
       'comparisons':
 
@@ -386,7 +386,7 @@ module.exports =
 
         test.done()
 
-    'from a mix of query-objects and sql-fragments':
+    'from a mix of condition-objects and sql-fragments':
 
       'equality with criterion argument': (test) ->
         c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
