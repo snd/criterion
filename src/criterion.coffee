@@ -123,6 +123,8 @@ prototypes.rawSql = beget prototypes.base,
 # params are entirely optional
 # casts to sql-fragment
 factories.rawSql = (sql, params) ->
+  if implementsSqlFragmentInterface sql
+    return sql
   beget prototypes.rawSql, {_sql: sql, _params: params}
 
 ###################################################################################
