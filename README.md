@@ -28,38 +28,38 @@ to see what has changed in 0.4.0 [click here](#changelog).
 
 - [background](#background)
 - [get started](#get-started)
-  - [install](#install)
-  - [require](#require)
-  - [condition-objects](#condition-objects)
-  - [raw-sql](#raw-sql)
+  - [install (`npm install criterion`)](#install)
+  - [require (`var criterion = require('criterion');`)](#require)
+  - [condition-objects (`var c = criterion({x: 7, y: {$lt: 5}});`)](#condition-objects)
+  - [raw-sql (`var c = criterion('LOG(y, ?)', 5);`)](#raw-sql)
   - [the sql-fragment interface](#the-sql-fragment-interface)
 - [for users of mesa and mohair](#for-users-of-mesa-and-mohair)
 - [condition-object reference by example](#condition-object-reference-by-example)
   - [comparisons](#comparisons)
-    - [equal](#equal)
-    - [not equal](#not-equal)
-    - [lower than](#lower-than)
-    - [greater than](#greater-than)
-    - [null](#null)
-    - [not null](#not-null)
+    - [equal (`{x: 1}` -> `x = ?`)](#equal)
+    - [not equal (`{x: {$ne: 1}}` -> `x != ?`)](#not-equal)
+    - [lower than (`{x: {$lt: 1}}` -> `x < ?`, `{x: {$lte: 1}}` -> `x <= ?`)](#lower-than)
+    - [greater than (`$gt` -> `>`, `$gte` -> `>=`](#greater-than)
+    - [null (`{$null: true}` -> `IS NULL`)](#null)
+    - [not null (`{$null: false}` -> `IS NOT NULL`)](#not-null)
   - [boolean operations](#boolean-operations)
-    - [and](#and)
-    - [or](#or)
-    - [not](#not)
+    - [and (`{x: 1, y: {$lt: 2}}` -> `(x = ?) AND (y < ?)`)](#and)
+    - [or (`{$or: {x: 1, y: {$lt: 2}}}` -> `(x = ?) OR (y < ?)`)](#or)
+    - [not (`{$not: {x: 1}}` -> `NOT (x = ?)`)](#not)
     - [nesting](#nesting)
   - [lists of scalar expressions](#lists-of-scalar-expressions)
-    - [in list](#in-list)
-    - [not in list](#not-in-list)
+    - [in list (`{x: [1, 2, 3]}` -> `x IN (?, ?, ?)`)](#in-list)
+    - [not in list (`{x: {$nin: [1, 2, 3]}}` -> `x NOT IN (?, ?, ?)`)](#not-in-list)
   - [subqueries](#subqueries)
     - [in subquery](#in-subquery)
     - [not in subquery](#not-in-subquery)
     - [exists - whether subquery returns any rows](#exists-whether-subquery-returns-any-rows)
     - [row-wise comparison with subqueries](#row-wise-comparison-with-subqueries)
 - [advanced topics](#advanced-topics)
-  - [combining criteria with `.and()`](#combining-criteria-with-and)
-  - [combining criteria with `.or()`](#combining-criteria-with-or)
+  - [combining criteria with `.and(criterium)`](#combining-criteria-with-and)
+  - [combining criteria with `.or(criterium)`](#combining-criteria-with-or)
   - [negating criteria with `.not()`](#negating-criteria-with-not)
-  - [escaping column names](#escaping-column-names)
+  - [escaping column names with `.sql(escape)`](#escaping-column-names)
   - [param array explosion](#param-array-explosion)
 - [changelog](#changelog)
 - [license: MIT](#license-mit)
@@ -194,6 +194,8 @@ c.params();
 
 use *raw-sql* for those rare cases where condition-objects and you have to fall back to using strings.
 
+note that [*condition-objects* and *raw-sql* can be mixed](#mixing-condition-objects-and-sql-fragments) to keep *raw-sql* to a minimum.
+
 ``` js
 var c = criterion('LOG(y, ?)', 4);
 ```
@@ -214,8 +216,6 @@ c.sql();
 c.params();
 // -> [4]
 ```
-
-note that [*condition-objects* and *raw-sql* can be mixed](#mixing-condition-objects-and-sql-fragments) to keep *raw-sql* to a minimum.
 
 in fact both the criterion made from *raw-sql* and one made from
 a *condition-object* are *sql-fragments*:
@@ -261,7 +261,20 @@ the optional `.params()` method takes no arguments and must return an array.
 
 now to the FUN part !
 
-**ANY** *sql-fragment* can be used in place of **ANY** value in a *condition-object*:
+**ANY** *sql-fragment* can be used in place of **ANY** value in a [condition-object](#condition-objects):
+
+``` js
+var c = criterion({
+  x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)
+});
+
+c.sql();
+// -> 'x = (crypt(?, gen_salt(?, ?)))'
+c.params();
+// -> ['password', 'bf', 4]
+```
+
+or
 
 ``` js
 var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
@@ -272,9 +285,9 @@ c.params();
 // -> [4]
 ```
 
-you can see how this allows mixing *condition-objects* with arbitrary sql. use it to keep *raw-sql* to a minimum.
+you see how this allows mixing *condition-objects* with arbitrary sql: use it to keep [raw-sql](#raw-sql) to a minimum !
 
-*sql-fragments* can be mixed with *condition-objects* inside boolean operators:
+*sql-fragments* can be mixed with *condition-objects* inside boolean operations:
 
 ``` js
 var c = criterion({
@@ -282,7 +295,7 @@ var c = criterion({
     criterion('x BETWEEN ? AND ?', 5, 10),
     {y: {$ne: 12}}
     [
-      criterion({x: {$ne: criterion('LOG(y, ?)', 4)}}),
+      criterion('x != LOG(y, ?)', 4)}}),
       {x: {$lt: 10}}
     ]
   ]
@@ -303,8 +316,12 @@ c.params();
 // -> [5, 10, 12, 4, 10]
 ```
 
-the fact that [mohair](http://github.com/snd/mohair)-queries are *sql-fragments*
-makes the creation of criteria with subqueries quite elegant:
+last but not least:
+
+the fact that [mohair](http://github.com/snd/mohair)/[mesa](http://github.com/snd/mesa)-queries are *sql-fragments*
+allows you to model subqueries with mohair/mesa
+and then use them directly in *condition-objects*.
+this makes the creation of SQL-where-conditions that contain subqueries quite elegant:
 [see the examples !](#subqueries)
 
 ## for users of mesa and mohair
@@ -377,7 +394,9 @@ this is one of the nice properties of mohair and mesa.
 
 *the first example in each section is always the preferred way !*
 
-### equal
+### comparisons
+
+#### equal
 
 where `x = 7`
 
@@ -393,7 +412,7 @@ or
 var c = criterion('x = ?', 7);
 ```
 
-### not equal
+#### not equal
 
 where `x != 3`
 
@@ -409,7 +428,72 @@ or
 var c = criterion('x != ?', 3);
 ```
 
-### and
+#### lower than
+
+where `x < 3` and `y <= 4`
+
+``` js
+var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
+c.sql();    // -> 'x < ? AND y <= ?'
+c.params(); // -> [3, 4]
+```
+or
+``` js
+var c = criterion('x < ? AND y <= ?', 3, 4);
+```
+
+#### greater than
+
+where `x > 3` and `y >= 4`
+
+``` js
+var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
+c.sql();    // -> 'x > ? AND y >= ?'
+c.params(); // -> [3, 4]
+```
+
+or
+
+``` js
+var c = criterion('x > ? AND y >= ?', 3, 4);
+```
+
+#### null
+
+where `x` is `null`
+
+``` js
+var c = criterion({x: {$null: true});
+c.sql();    // -> 'x IS NULL'
+c.params(); // -> []
+```
+
+or
+
+``` js
+var c = criterion('x IS NULL');
+```
+
+#### not null
+
+where `x` is not `null`
+
+``` js
+var c = criterion({x: {$null: false}});
+c.sql();        // -> 'x IS NOT NULL'
+c.params();     // -> []
+```
+
+or
+
+``` js
+var c = criterion('x IS NOT NULL');
+```
+
+
+### boolean operations
+
+#### and
 
 where `x = 7` and `y = 'a'`
 
@@ -443,7 +527,7 @@ or
 var c = criterion('x = ? AND y = ?', 7, 'a');
 ```
 
-### or
+#### or
 
 where `x = 7` or `y = 6`
 
@@ -465,7 +549,7 @@ or
 var c = criterion('x = ? OR y = ?', 7, 6);
 ```
 
-### not
+#### not
 
 where not (`x > 3` and `y >= 4`)
 
@@ -482,9 +566,9 @@ var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
 ```
 
 
-### nesting `$or`, `$and` and `$not`
+#### nesting `$or`, `$and` and `$not`
 
-`$or`, `$and` and `$not` can be nested arbitrarily deep.
+`$or`, `$and` and `$not` can be nested arbitrarily.
 
 where `(x > 10) AND (x < 20) AND (x != 17)
 
@@ -511,70 +595,11 @@ c.sql();    // -> 'x NOT IN (?, ?, ?)'
 c.params(); // -> [1,2,3]
 ```
 
+### lists of scalar expressions
 
-### lower than
+[see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
-where `x < 3` and `y <= 4`
-
-``` js
-var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
-c.sql();    // -> 'x < ? AND y <= ?'
-c.params(); // -> [3, 4]
-```
-or
-``` js
-var c = criterion('x < ? AND y <= ?', 3, 4);
-```
-
-### greater than
-
-where `x > 3` and `y >= 4`
-
-``` js
-var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
-c.sql();    // -> 'x > ? AND y >= ?'
-c.params(); // -> [3, 4]
-```
-
-or
-
-``` js
-var c = criterion('x > ? AND y >= ?', 3, 4);
-```
-
-### null
-
-where `x` is `null`
-
-``` js
-var c = criterion({x: {$null: true});
-c.sql();    // -> 'x IS NULL'
-c.params(); // -> []
-```
-
-or
-
-``` js
-var c = criterion('x IS NULL');
-```
-
-### not null
-
-where `x` is not `null`
-
-``` js
-var c = criterion({x: {$null: false}});
-c.sql();        // -> 'x IS NOT NULL'
-c.params();     // -> []
-```
-
-or
-
-``` js
-var c = criterion('x IS NOT NULL');
-```
-
-### in list of scalar expressions
+#### in list
 
 where `x` is in `[1, 2, 3]`
 
@@ -596,9 +621,7 @@ or
 var c = criterion('x IN (?)', [1, 2, 3]);
 ```
 
-[see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
-
-### not in list of scalar expressions
+#### not in list
 
 where `x` is not in `[1, 2, 3]`
 
@@ -614,12 +637,16 @@ or
 var c = criterion('x NOT IN (?)', [1, 2, 3]);
 ```
 
+### subqueries
+
+`subquery` below can be any [sql-fragment](#the-sql-fragment-interface).
+
+the fact that [mohair](http://github.com/snd/mohair)/[mesa](http://github.com/snd/mesa)-queries are *sql-fragments*
+allows you to model subqueries with mohair/mesa
+and then use them directly in *condition-objects*.
+this makes the creation of SQL-where-conditions that contain subqueries quite elegant.
+
 [see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
-
-### subquery
-
-the fact that [mohair](http://github.com/snd/mohair)-queries are *sql-fragments*
-makes the creation of criteria with subqueries quite elegant.
 
 #### in subquery
 
@@ -637,12 +664,6 @@ c.sql();    // -> 'x IN (SELECT id FROM post WHERE is_published = ?)'
 c.params(); // -> [true]
 ```
 
-`subquery` can be any [mohair](https://github.com/snd/mohair)-query-object,
-[mesa](https://github.com/snd/mesa)-query-object and any other
-object that has an `sql()` function!
-
-[see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
-
 #### not in subquery
 
 where `x` is in subquery
@@ -659,10 +680,6 @@ c.sql();    // -> 'x NOT IN (SELECT id FROM post WHERE is_published = ?)'
 c.params(); // -> [true]
 ```
 
-`subquery` can be any [mohair](https://github.com/snd/mohair)-query-object,
-[mesa](https://github.com/snd/mesa)-query-object and any other
-object that has an `sql()` function!
-
 #### subquery returns any rows
 
 ``` js
@@ -677,12 +694,6 @@ var c = criterion({$exists: subquery})
 c.sql();    // -> 'EXISTS (SELECT * FROM post WHERE is_published = ?)'
 c.params(); // -> [true]
 ```
-
-`subquery` can be any [mohair](https://github.com/snd/mohair)-query-object,
-[mesa](https://github.com/snd/mesa)-query-object and any other
-object that has an `sql()` function!
-
-[see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
 #### compare to any in subquery
 
@@ -702,10 +713,6 @@ var any = criterion({x: {$neAny: subquery}})
 any.sql();    // -> 'x != ANY (SELECT * FROM post WHERE is_published = ?)'
 any.params(); // -> [true]
 ```
-
-`subquery` can be any [sql-fragment](#sql-fragment)
-
-[see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
 #### compare to all in subquery
 
@@ -837,10 +844,3 @@ c.params();     // -> [7, 8, 9, 10]
 - start all result comments on a new line
 - sections in reference
   - boolean operators
-- document query nesting
-  - document that you can intersperse sql fragments in $or and $and
-- "you can use sql-fragments pretty much anywhere"
-- if some combination that you think should work doesnt work file an issue
-  and if it makes sense i'll make it work !
-- document row-wise comparison
-  - document all places where subqueries can be used
