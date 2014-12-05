@@ -198,7 +198,7 @@ prototypes.exists = beget prototypes.base,
 
 factories.exists = (value) ->
   unless implementsSqlFragmentInterface value
-    throw new Error '$exists key requires value that implements sql-fragment interface'
+    throw new TypeError '$exists key requires value that implements sql-fragment interface'
   beget prototypes.exists, {_value: value}
 
 ###################################################################################
@@ -244,14 +244,14 @@ for name, operator of subqueryNameToOperatorMapping
             throw new Error "#{name} key with empty array value"
         else
           # only $in and $nin support arrays
-          throw new Error "#{name} key doesn't support array value. only $in and $nin do!"
+          throw new TypeError "#{name} key doesn't support array value. only $in and $nin do!"
       # not array
       else
         unless implementsSqlFragmentInterface value
           if name in ['$in', '$nin']
-            throw new Error "#{name} key requires value that is an array or implements sql-fragment interface"
+            throw new TypeError "#{name} key requires value that is an array or implements sql-fragment interface"
           else
-            throw new Error "#{name} key requires value that implements sql-fragment interface"
+            throw new TypeError "#{name} key requires value that implements sql-fragment interface"
 
       beget prototypes.subquery, {_key: key, _value: value, _operator: operator}
 
@@ -290,7 +290,7 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
 
   # invalid arguments?
   unless 'string' is typeOfFirstArg or 'object' is typeOfFirstArg
-    throw new Error "string or object expected as first argument but #{typeOfFirstArg} given"
+    throw new TypeError "string or object expected as first argument but #{typeOfFirstArg} given"
 
   # raw sql string with optional params?
   if typeOfFirstArg is 'string'
@@ -335,7 +335,7 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
   # `key` MAPS TO `value`
 
   unless value?
-    throw new Error "value undefined or null for key #{key}"
+    throw new TypeError "value undefined or null for key #{key}"
 
   if key is '$and'
     return factories.and explodeObject(value).map criterionFactory
@@ -373,7 +373,7 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
   # FROM HERE ON `value` IS AN OBJECT WITH A `modifier` KEY AND an `innerValue`
 
   unless innerValue?
-    throw new Error "value undefined or null for key #{key} and modifier key #{modifier}"
+    throw new TypeError "value undefined or null for key #{key} and modifier key #{modifier}"
 
   modifierFactory = modifierFactories[modifier]
 
