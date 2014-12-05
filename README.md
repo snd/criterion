@@ -46,7 +46,6 @@ to see what has changed in 0.4.0 [click here](#changelog).
     - [and (`{x: 1, y: {$lt: 2}}` -> `(x = ?) AND (y < ?)`)](#and)
     - [or (`{$or: {x: 1, y: {$lt: 2}}}` -> `(x = ?) OR (y < ?)`)](#or)
     - [not (`{$not: {x: 1}}` -> `NOT (x = ?)`)](#not)
-    - [nesting](#nesting)
   - [lists of scalar expressions](#lists-of-scalar-expressions)
     - [in list (`{x: [1, 2, 3]}` -> `x IN (?, ?, ?)`)](#in-list)
     - [not in list (`{x: {$nin: [1, 2, 3]}}` -> `x NOT IN (?, ?, ?)`)](#not-in-list)
@@ -56,8 +55,8 @@ to see what has changed in 0.4.0 [click here](#changelog).
     - [exists - whether subquery returns any rows](#exists-whether-subquery-returns-any-rows)
     - [row-wise comparison with subqueries](#row-wise-comparison-with-subqueries)
 - [advanced topics](#advanced-topics)
-  - [combining criteria with `.and(criterium)`](#combining-criteria-with-and)
-  - [combining criteria with `.or(criterium)`](#combining-criteria-with-or)
+  - [combining criteria with `.and()`](#combining-criteria-with-and)
+  - [combining criteria with `.or()`](#combining-criteria-with-or)
   - [negating criteria with `.not()`](#negating-criteria-with-not)
   - [escaping column names with `.sql(escape)`](#escaping-column-names)
   - [param array explosion](#param-array-explosion)
@@ -348,16 +347,20 @@ var condition = {x: 7};
 // criterion
 var criterion = require('criterion');
 var c = criterion(condition);
-c.sql();    // -> 'x = ?'
-c.params(); // -> [7]
+c.sql();
+// -> 'x = ?'
+c.params();
+// -> [7]
 
 // mohair
 var mohair = require('mohair');
 var query = mohair
   .table('post')
   .where(condition);
-query.sql();    // -> 'SELECT * FROM post WHERE x = ?'
-query.params(); // -> [7]
+query.sql();
+// -> 'SELECT * FROM post WHERE x = ?'
+query.params();
+// -> [7]
 ```
 
 if `.where()` is called more than once the resulting criteria are [ANDed](#combining-criteria-with-and) together:
@@ -392,7 +395,8 @@ this is one of the nice properties of mohair and mesa.
 
 ## condition-object reference by example
 
-*the first example in each section is always the preferred way !*
+*the first example (before the first "or") in each section is
+always the preferred way of doing things !*
 
 ### comparisons
 
@@ -402,8 +406,10 @@ where `x = 7`
 
 ``` js
 var c = criterion({x: 7});
-c.sql();    // -> 'x = ?'
-c.params(); // -> [7]
+c.sql();
+// -> 'x = ?'
+c.params();
+// -> [7]
 ```
 
 or
@@ -434,8 +440,10 @@ where `x < 3` and `y <= 4`
 
 ``` js
 var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
-c.sql();    // -> 'x < ? AND y <= ?'
-c.params(); // -> [3, 4]
+c.sql();
+// -> 'x < ? AND y <= ?'
+c.params();
+// -> [3, 4]
 ```
 or
 ``` js
@@ -448,8 +456,10 @@ where `x > 3` and `y >= 4`
 
 ``` js
 var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
-c.sql();    // -> 'x > ? AND y >= ?'
-c.params(); // -> [3, 4]
+c.sql();
+// -> 'x > ? AND y >= ?'
+c.params();
+// -> [3, 4]
 ```
 
 or
@@ -464,8 +474,10 @@ where `x` is `null`
 
 ``` js
 var c = criterion({x: {$null: true});
-c.sql();    // -> 'x IS NULL'
-c.params(); // -> []
+c.sql();
+// -> 'x IS NULL'
+c.params();
+// -> []
 ```
 
 or
@@ -480,8 +492,10 @@ where `x` is not `null`
 
 ``` js
 var c = criterion({x: {$null: false}});
-c.sql();        // -> 'x IS NOT NULL'
-c.params();     // -> []
+c.sql();
+// -> 'x IS NOT NULL'
+c.params();
+// -> []
 ```
 
 or
@@ -493,14 +507,18 @@ var c = criterion('x IS NOT NULL');
 
 ### boolean operations
 
+`$or`, `$and` and `$not` can be nested arbitrarily.
+
 #### and
 
 where `x = 7` and `y = 'a'`
 
 ``` js
 var c = criterion({x: 7, y: 'a'});
-c.sql();    // -> 'x = ? AND y = ?'
-c.params(); // -> [7, 'a']
+c.sql();
+// -> 'x = ? AND y = ?'
+c.params();
+// -> [7, 'a']
 ```
 
 or
@@ -533,8 +551,10 @@ where `x = 7` or `y = 6`
 
 ``` js
 var c = criterion({$or: {x: 7, y: 6}});
-c.sql();    // -> 'x = ? OR y = ?'
-c.params(); // -> [7, 6]
+c.sql();
+// -> 'x = ? OR y = ?'
+c.params();
+// -> [7, 6]
 ```
 
 or
@@ -555,8 +575,10 @@ where not (`x > 3` and `y >= 4`)
 
 ``` js
 var c = criterion({$not: {x: {$gt: 3}, y: {$gte: 4}}});
-c.sql();    // -> 'NOT (x > ? AND y >= ?)'
-c.params(); // -> [3, 4]
+c.sql();
+// -> 'NOT (x > ? AND y >= ?)'
+c.params();
+// -> [3, 4]
 ```
 
 or
@@ -565,35 +587,7 @@ or
 var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
 ```
 
-
-#### nesting `$or`, `$and` and `$not`
-
 `$or`, `$and` and `$not` can be nested arbitrarily.
-
-where `(x > 10) AND (x < 20) AND (x != 17)
-
-``` js
-var subquery = mohair.table('post').where({title: 'criterion});
-
-var c = criterion({
-  $or: [{
-    $and: [
-      {x: {$gt: 10}},
-      {x: {$lt: 20}},
-      {x: {$ne: 17}}
-      # TODO make sure that this works
-      criterion('x BETWEEN ? AND ?', 5, 10)
-      {$or: {
-        exists: subquery
-        x: {$nin: [1, 2, 3]}
-      }
-    ]
-
-  },
-
-c.sql();    // -> 'x NOT IN (?, ?, ?)'
-c.params(); // -> [1,2,3]
-```
 
 ### lists of scalar expressions
 
@@ -605,8 +599,10 @@ where `x` is in `[1, 2, 3]`
 
 ``` js
 var c = criterion({x: [1, 2, 3]});
-c.sql();    // -> 'x IN (?, ?, ?)'
-c.params(); // -> [1,2,3]
+c.sql();
+// -> 'x IN (?, ?, ?)'
+c.params();
+// -> [1,2,3]
 ```
 
 or
@@ -627,8 +623,10 @@ where `x` is not in `[1, 2, 3]`
 
 ``` js
 var c = criterion({x: {$nin: [1, 2, 3]}});
-c.sql();    // -> 'x NOT IN (?, ?, ?)'
-c.params(); // -> [1,2,3]
+c.sql();
+// -> 'x NOT IN (?, ?, ?)'
+c.params();
+// -> [1,2,3]
 ```
 
 or
@@ -639,7 +637,7 @@ var c = criterion('x NOT IN (?)', [1, 2, 3]);
 
 ### subqueries
 
-`subquery` below can be any [sql-fragment](#the-sql-fragment-interface).
+`var subquery` in the examples below can be any [sql-fragment](#the-sql-fragment-interface).
 
 the fact that [mohair](http://github.com/snd/mohair)/[mesa](http://github.com/snd/mesa)-queries are *sql-fragments*
 allows you to model subqueries with mohair/mesa
@@ -660,13 +658,15 @@ var subquery = mohair
 
 var c = criterion({x: {$in: subquery}});
 
-c.sql();    // -> 'x IN (SELECT id FROM post WHERE is_published = ?)'
-c.params(); // -> [true]
+c.sql();
+// -> 'x IN (SELECT id FROM post WHERE is_published = ?)'
+c.params();
+// -> [true]
 ```
 
 #### not in subquery
 
-where `x` is in subquery
+where `x` is not in subquery
 
 ``` js
 var subquery = mohair
@@ -676,8 +676,10 @@ var subquery = mohair
 
 var c = criterion({x: {$nin: subquery}});
 
-c.sql();    // -> 'x NOT IN (SELECT id FROM post WHERE is_published = ?)'
-c.params(); // -> [true]
+c.sql();
+// -> 'x NOT IN (SELECT id FROM post WHERE is_published = ?)'
+c.params();
+// -> [true]
 ```
 
 #### subquery returns any rows
@@ -691,11 +693,13 @@ var subquery = mohair
 
 var c = criterion({$exists: subquery})
 
-c.sql();    // -> 'EXISTS (SELECT * FROM post WHERE is_published = ?)'
-c.params(); // -> [true]
+c.sql();
+// -> 'EXISTS (SELECT * FROM post WHERE is_published = ?)'
+c.params();
+// -> [true]
 ```
 
-#### compare to any in subquery
+#### compare to any/all in subquery
 
 ``` js
 var subquery = mohair
@@ -703,20 +707,15 @@ var subquery = mohair
   .select('id')
   .where({is_published: false})
 
-var any = criterion({x: {$any: subquery}})
+var c = criterion({x: {$any: subquery}})
 
-any.sql();    // -> 'x = ANY (SELECT * FROM post WHERE is_published = ?)'
-any.params(); // -> [true]
-
-var any = criterion({x: {$neAny: subquery}})
-
-any.sql();    // -> 'x != ANY (SELECT * FROM post WHERE is_published = ?)'
-any.params(); // -> [true]
+c.sql();
+// -> 'x = ANY (SELECT * FROM post WHERE is_published = ?)'
+c.params();
+// -> [true]
 ```
 
-#### compare to all in subquery
-
-TODO
+criterion supports
 
 #### row-wise comparison with subqueries
 
@@ -747,46 +746,54 @@ postsCreatedBeforeUser.params();
 
 ## advanced topics
 
-### combining criteria with `and`
+### combining criteria with `.and()`
 
 ``` js
 var alpha = criterion({x: 7, y: 'a'});
 var bravo = criterion('z = ?', true);
 
-alpha.and(bravo).sql();     // -> '(x = ?) AND (y = ?) AND (z = ?)'
-alpha.and(bravo).params();  // -> [7, 'a', true]
+alpha.and(bravo).sql();
+// -> '(x = ?) AND (y = ?) AND (z = ?)'
+alpha.and(bravo).params();
+// -> [7, 'a', true]
 ```
 
 `and()`, `or()` and `not()` return new objects.
 no method ever changes the object it is called on.
 
-### combining criteria with `or`
+### combining criteria with `.or()`
 
 ``` js
 var alpha = criterion({x: 7, y: 'a'});
 var bravo = criterion('z = ?', true);
 
-bravo.or(alpha).sql();      // -> '(z = ?) OR (x = ? AND y = ?)'
-bravo.or(alpha).params();   // -> [true, 7, 'a']
+bravo.or(alpha).sql();
+// -> '(z = ?) OR (x = ? AND y = ?)'
+bravo.or(alpha).params();
+// -> [true, 7, 'a']
 ```
 
 `and()`, `or()` and `not()` return new objects.
 no method ever changes the object it is called on.
 
-### negating criteria with `not`
+### negating criteria with `.not()`
 
 ``` js
 var c = criterion({x: 7, y: 'a'});
-c.not().sql();    // -> 'NOT ((x = ?) AND (y = ?))'
-c.not().params(); // -> [7, 'a']
+c.not().sql();
+// -> 'NOT ((x = ?) AND (y = ?))'
+c.not().params();
+// -> [7, 'a']
 ```
 
 double negations are removed:
 
 ``` js
 var c = criterion({x: 7, y: 'a'});
-c.not().not().sql();    // -> '(x = ?) AND (y = ?)'
-c.not().not().params(); // -> [7, 'a']
+c.not().not().sql();
+// -> '(x = ?) AND (y = ?)'
+c.not().not().params();
+// -> [7, 'a']
 ```
 
 ### escaping column names
@@ -799,8 +806,10 @@ var c = criterion({x: 7, y: 8});
 var escape = function(x) {
   return '"' + x + '"';
 };
-c.sql(escape);  // -> '"x" = ? AND "y" = ?' <- x and y are escaped !
-c.params();     // -> [7, 8]
+c.sql(escape);
+// -> '"x" = ? AND "y" = ?' <- x and y are escaped !
+c.params();
+// -> [7, 8]
 ```
 
 ### param array explosion
@@ -811,13 +820,19 @@ the corresponding binding `?` is exploded into a list of `?`:
 ``` js
 var c = criterion('x = ? AND y IN (?)', 7, [8, 9, 10]);
 
-c.sql();        // -> 'x = ? AND y IN (?, ?, ?)'
-c.params();     // -> [7, 8, 9, 10]
+c.sql();
+// -> 'x = ? AND y IN (?, ?, ?)'
+c.params();
+// -> [7, 8, 9, 10]
+```
 
+``` js
 var c = criterion('x = ? AND (y && ARRAY[?])', 7, [8, 9, 10]);
 
-c.sql();        // -> 'x = ? AND (y && ARRAY[?, ?, ?])'
-c.params();     // -> [7, 8, 9, 10]
+c.sql();
+// -> 'x = ? AND (y && ARRAY[?, ?, ?])'
+c.params();
+// -> [7, 8, 9, 10]
 ```
 
 ## changelog
@@ -826,21 +841,23 @@ c.params();     // -> [7, 8, 9, 10]
 
 - to escape column names in the resulting SQL an escape function can now be passed as an argument into any `sql()` method
 - sql fragments are now always wrapped in parentheses before pasting them into a query.
-  this doesn't break anything and makes subqueries work without further changes.
+  - doesn't break anything and makes subqueries work without further changes.
 - added `$exists` which can be used with mesa/mohair queries (or any object that responds to an `sql()` method): `criterion({$exists: mohair.table('post').where({id: 7})})`
-- `$in` and `$nin` now support not just lists of values but also subqueries: `criterion({id: {$in: mohair.table('post').where({is_active: true}).select('id')}})`
-- added modifiers `$any`, `$neAny`, `$ltAny`, `$gtAny`, `$gteAny`, `$all`, `$neAll`, `$ltAll`, `$lteAll`, `$gtAll`, `$gteAll` to be used with subqueries: `criterion({created_at: {$gteAll: mohair.table('post').where({is_active: true}).select('updated_at')}})`
-- sql fragments can now be used in more places...
+- `$in` and `$nin` now support not just lists of values but also subqueries:
+  - `criterion({id: {$in: mohair.table('post').where({is_active: true}).select('id')}})`
+- added modifiers `$any`, `$neAny`, `$ltAny`, `$gtAny`, `$gteAny`, `$all`, `$neAll`, `$ltAll`, `$lteAll`, `$gtAll`, `$gteAll` to be used with subqueries:
+  - `criterion({created_at: {$gteAll: mohair.table('post').where({is_active: true}).select('updated_at')}})`
+- sql-fragments can now be used in more places...
   - where the value would normally go in a comparison: `{$lt: criterion('5 + 8')}`
     - this makes row-wise comparisons with subqueries possible
   - in the arrays passed to `$or` and `$and`: `{$or [{a: 7}, criterion('b < ?', 5)]}`
   - ...
-- improved the code, the tests and the documentation
+- bugfixes
+  - made some (exotic) condition-objects work which didn't work before
+- major improvements to
+  - code quality
+  - tests
+  - terminology
+  - documentation
 
 ## [license: MIT](LICENSE)
-
-## TODO
-
-- start all result comments on a new line
-- sections in reference
-  - boolean operators
