@@ -83,6 +83,8 @@ criterion is part of three libraries for nodejs that strive to
 - succinct 
 - FUN !
 
+used in production
+
 short code
 
 high quality
