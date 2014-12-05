@@ -223,6 +223,7 @@ module.exports =
           subquery =
             sql: (escape) ->
               "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
+            params: -> []
 
           subqueryWithParams =
             sql: (escape) ->
@@ -260,6 +261,7 @@ module.exports =
           subquery =
             sql: (escape) ->
               "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
+            params: -> []
           subqueryWithParams =
             sql: (escape) ->
               "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
@@ -284,6 +286,7 @@ module.exports =
           subquery =
             sql: (escape) ->
               "SELECT * FROM #{escape "user"}"
+            params: -> []
 
           subqueryWithParams =
             sql: (escape) ->

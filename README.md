@@ -228,20 +228,22 @@ in
 [mohair](http://github.com/snd/mohair)
 and
 [criterion](http://github.com/snd/criterion)
-every object that has a `.sql()` method and optionally a `.params()` method
-is said to "be an *sql-fragment*" or "to implement the *sql-fragment* interface".
+every object that has a `.sql()` method and a `.params()` method
+is an implements the [sql-fragment](#the-sql-fragment-interface) interface
+and is an [sql-fragment](#the-sql-fragment-interface).
 
 more precisely:
 
-the mandatory `.sql()` method should return a string of valid SQL.
-the `.sql()` method might be called with a function `escape()` as the only argument.
-the function `escape()` takes a string and returns a string.
-when the `escape` function is present then the `.sql()` method should call `escape()`
-to transform table- and column-names in the returned SQL:
-if `.sql()` constructs the SQL on-the-fly that should be easy.
-in the case of *raw-sql* escaping is very complex, ambigous, not worth the effort and therefore not required.
+the `.sql()` method should return a string of valid SQL.
+the `.sql()` method might be called with a single argument:
+a function `escape()` which takes a string and returns a string.
+when the `escape()` function is present then the `.sql()` method should call it
+to transform table- and column-names in the returned SQL.
 
-the optional `.params()` method takes no arguments and must return an array.
+if `.sql()` constructs the SQL on-the-fly that should be straightforward.
+in the case of *raw-sql* escaping is complex, ambigous and not worth the effort.
+
+the `.params()` method takes no arguments and must return an array.
 
 #### things that are sql-fragments (already)
 
@@ -505,7 +507,6 @@ or
 ``` js
 var c = criterion('x IS NOT NULL');
 ```
-
 
 ### boolean operations
 

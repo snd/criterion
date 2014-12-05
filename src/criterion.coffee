@@ -70,10 +70,7 @@ helper.flatten = flatten = (array) ->
 # sql-fragments are treated differently in many situations
 
 helper.implementsSqlFragmentInterface = implementsSqlFragmentInterface = (value) ->
-  value? and 'function' is typeof value.sql
-
-helper.getSqlFragmentParams = getSqlFragmentParams = (fragment) ->
-  fragment.params?() or []
+  value? and 'function' is typeof value.sql and 'function' is typeof value.params
 
 ###################################################################################
 # PROTOTYPES AND FACTORIES
@@ -115,19 +112,14 @@ prototypes.rawSql = beget prototypes.base,
         "?"
 
   params: ->
-    if @_params
-      flatten @_params
-    else
-      []
+    flatten @_params
 
 # params are entirely optional
 # casts to sql-fragment
-factories.rawSql = (sql, params) ->
+factories.rawSql = helper.rawSql = (sql, params = []) ->
   if implementsSqlFragmentInterface sql
     return sql
   beget prototypes.rawSql, {_sql: sql, _params: params}
-
-helper.rawSql = factories.rawSql
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
@@ -141,7 +133,7 @@ prototypes.comparison = beget prototypes.base,
       "#{escape @_key} #{@_operator} ?"
   params: ->
     if implementsSqlFragmentInterface @_value
-      getSqlFragmentParams @_value
+      @_value.params()
     else
       [@_value]
 
@@ -196,7 +188,7 @@ prototypes.exists = beget prototypes.base,
   sql: (escape = identity) ->
     "EXISTS (#{@_value.sql escape})"
   params: ->
-    getSqlFragmentParams @_value
+    @_value.params()
 
 factories.exists = (value) ->
   unless implementsSqlFragmentInterface value
@@ -216,9 +208,9 @@ prototypes.subquery = beget prototypes.base,
       "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
   params: ->
     if implementsSqlFragmentInterface @_value
-      getSqlFragmentParams @_value
+      @_value.params()
     else
-      # only for $in and $nin. is an array then.
+      # only for $in and $nin: in that case @_value is already an array
       @_value
 
 subqueryNameToOperatorMapping =
@@ -268,8 +260,7 @@ prototypes.combination = beget prototypes.base,
   params: ->
     params = []
     @_criteria.forEach (c) ->
-      if c.params?
-        params = params.concat c.params()
+      params = params.concat c.params()
     return params
 
 factories.and = (criteria) ->
