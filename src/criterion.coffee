@@ -127,6 +127,8 @@ factories.rawSql = (sql, params) ->
     return sql
   beget prototypes.rawSql, {_sql: sql, _params: params}
 
+helper.rawSql = factories.rawSql
+
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
 

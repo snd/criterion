@@ -142,6 +142,8 @@ factories.rawSql = function(sql, params) {
   });
 };
 
+helper.rawSql = factories.rawSql;
+
 prototypes.comparison = beget(prototypes.base, {
   sql: function(escape) {
     if (escape == null) {
