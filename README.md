@@ -4,18 +4,37 @@
 [![Build Status](https://travis-ci.org/snd/criterion.svg?branch=master)](https://travis-ci.org/snd/criterion/branches)
 [![Dependencies](https://david-dm.org/snd/criterion.svg)](https://david-dm.org/snd/criterion)
 
-> criterion is a very flexible, powerful, yet simple solution for describing
-> and SQL-where-conditions as data (instead of strings) to make them easily
+> criterion lifts SQL-where-conditions from strings into the realm of data:
+data has the advantage to be programmatically accessible and formable than strings.
+is a highly flexible and powerful, yet simple solution for modelling
+easily build up and manipulated with code.
+> be easily
 > can be manipulated and composed.
 > always drop down to raw-sql.
+> SQL-where-conditions as data instead of strings.
 
 > criterion parses SQL-where-conditions from a mongodb-like query-language into
 > composable objects it can compile to SQL
 
+#### WARNING !
+
+**
+this is the readme for criterion@0.4.0.
+criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
+it will be used very very soon !
+to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
+to see what has changed in 0.4.0 [click here](#changelog).
+**
+
 - [background](#background)
 - [get started](#get-started)
+  - [install](#install)
+  - [require](#require)
+  - [condition-objects](#condition-objects)
+  - [raw-sql](#raw-sql)
+  - [the sql-fragment interface](#the-sql-fragment-interface)
 - [for users of mesa and mohair](#for-users-of-mesa-and-mohair)
-- [reference by example](#reference-by-example)
+- [condition-object reference by example](#condition-object-reference-by-example)
   - [comparisons](#comparisons)
     - [equal](#equal)
     - [not equal](#not-equal)
@@ -23,14 +42,11 @@
     - [greater than](#greater-than)
     - [null](#null)
     - [not null](#not-null)
-  - [boolean](#boolean)
+  - [boolean operations](#boolean-operations)
     - [and](#and)
     - [or](#or)
     - [not](#not)
-  - [sql-fragments](#sql-fragments)
-    - [between](#between)
-    - [sql function](#sql-function)
-  - [nesting](#not)
+    - [nesting](#nesting)
   - [lists of scalar expressions](#lists-of-scalar-expressions)
     - [in list](#in-list)
     - [not in list](#not-in-list)
@@ -38,10 +54,13 @@
     - [in subquery](#in-subquery)
     - [not in subquery](#not-in-subquery)
     - [exists - whether subquery returns any rows](#exists-whether-subquery-returns-any-rows)
-  - [combining criteria with and](#combining-criteria-with-and)
-  - [combining criteria with or](#combining-criteria-with-or)
-  - [negating criteria with not](#negating-criteria-with-not)
+    - [row-wise comparison with subqueries](#row-wise-comparison-with-subqueries)
+- [advanced topics](#advanced-topics)
+  - [combining criteria with `.and()`](#combining-criteria-with-and)
+  - [combining criteria with `.or()`](#combining-criteria-with-or)
+  - [negating criteria with `.not()`](#negating-criteria-with-not)
   - [escaping column names](#escaping-column-names)
+  - [param array explosion](#param-array-explosion)
 - [changelog](#changelog)
 - [license: MIT](#license-mit)
 
@@ -69,13 +88,13 @@ short code
 
 high quality
 
-few lines of code
+- few lines of high quality code
 
 well tested
 
 philosophy
 
-#### [CRITERION](http://github.com/snd/criterion)
+#### [CRITERION](http://github.com/snd/criterion) <- you are looking at it
 
 parses SQL-where-conditions from a mongodb-like query-language into
 objects which it can compile to SQL
@@ -144,14 +163,20 @@ now we can make a *criterion* from the *condition-object*:
 var c = criterion(condition);
 ```
 
-we can compile the *criterion* to SQL:
+we can then compile the *criterion* to SQL:
 
 ``` js
 c.sql();
 // ->
-// '(a = ?) AND
-//  (b < ?) AND NOT
-//  ((c IN (?, ?, ?)) OR (d IS NOT NULL))'
+// '(a = ?)
+//  AND
+//  (b < ?)
+//  AND
+//  NOT (
+//    (c IN (?, ?, ?))
+//    OR
+//    (d IS NOT NULL)
+//  )'
 ```
 
 we can also get the bound parameters of the *criterion*:
@@ -161,12 +186,13 @@ c.params();
 // -> [7, 5, 1, 2, 3]
 ```
 
-[see the reference below for examples on how to model almost every SQL-where-condition with *condition-objects* !](#reference-by-example)
+[see the reference below for examples on how to model almost every SQL-where-condition using *condition-objects* !](#reference-by-example)
 
 ### raw-sql
 
-*raw-sql* is a string of sql followed by some optional parameter bindings:
-for those rare cases where condition-objects and you have to fall back to sql strings.
+*raw-sql* is a string of SQL followed by some optional parameter bindings.
+
+use *raw-sql* for those rare cases where condition-objects and you have to fall back to using strings.
 
 ``` js
 var c = criterion('LOG(y, ?)', 4);
@@ -189,10 +215,12 @@ c.params();
 // -> [4]
 ```
 
+note that [*condition-objects* and *raw-sql* can be mixed](#mixing-condition-objects-and-sql-fragments) to keep *raw-sql* to a minimum.
+
 in fact both the criterion made from *raw-sql* and one made from
 a *condition-object* are *sql-fragments*:
 
-### sql-fragments
+### the sql-fragment interface
 
 in
 [mesa](http://github.com/snd/mesa),
@@ -202,25 +230,19 @@ and
 every object that has a `.sql()` method and optionally a `.params()` method
 is said to "be an *sql-fragment*" or "to implement the *sql-fragment* interface".
 
-#### sql-fragment interface
-
 more precisely:
 
-- method `.sql()` 
-  - mandatory
-  - must return a string of valid SQL
-  - one argument `escape`
-    - sometimes present, sometimes not
-    - if present must be a function of `String -> String`
-    - if present should be called to transform table- and column-names on the SQL string that would be returned
-      - if `.sql()` constructs the SQL on-the-fly that should be easy
-      - with *raw-sql* this is very complex, ambigous, not worth the effort and not required
-- method `.params()`
-  - optional
-  - must return an array
-  - no arguments
+the mandatory `.sql()` method should return a string of valid SQL.
+the `.sql()` method might be called with a function `escape()` as the only argument.
+the function `escape()` takes a string and returns a string.
+when the `escape` function is present then the `.sql()` method should call `escape()`
+to transform table- and column-names in the returned SQL:
+if `.sql()` constructs the SQL on-the-fly that should be easy.
+in the case of *raw-sql* escaping is very complex, ambigous, not worth the effort and therefore not required.
 
-#### things that are sql-fragments
+the optional `.params()` method takes no arguments and must return an array.
+
+#### things that are sql-fragments (already)
 
 - EVERY *criterion*:
   - `criterion({x: 7})`
@@ -235,58 +257,55 @@ more precisely:
   - `mohair.raw('LOG(y, ?)', 4)`
 - EVERY object you create that implements the [sql-fragment interface](#sql-fragment-interface)
 
-#### mixing sql-fragments and query-objects
+#### mixing condition-objects and sql-fragments
 
-now to the FUN part:
+now to the FUN part !
 
-
+**ANY** *sql-fragment* can be used in place of **ANY** value in a *condition-object*:
 
 ``` js
 var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
 
-c.sql();        // -> 'x != LOG(y, ?)'
-c.params();     // -> [4]
+c.sql();
+// -> 'x != LOG(y, ?)'
+c.params();
+// -> [4]
 ```
 
-be used in place of **any** value in a query object.
-this allows you to mix query objects with arbitrary sql:
+you can see how this allows mixing *condition-objects* with arbitrary sql. use it to keep *raw-sql* to a minimum.
 
-
-combining and nesting ...
-
-query object:
-
-if `criterion()` is called with an object
-
-let's make a query:
-
-
-you can even use a criterion build from a query-object as a fragment
-
-alternatively criterion can be called with a string of **raw sql** and optional parameter bindings:
+*sql-fragments* can be mixed with *condition-objects* inside boolean operators:
 
 ``` js
-var c = criterion('x = ? AND Y = ?', 7, 8);
+var c = criterion({
+  $or: [
+    criterion('x BETWEEN ? AND ?', 5, 10),
+    {y: {$ne: 12}}
+    [
+      criterion({x: {$ne: criterion('LOG(y, ?)', 4)}}),
+      {x: {$lt: 10}}
+    ]
+  ]
+});
 
-c.sql();        // -> 'x = ? AND y = ?'
-c.params();     // -> [7, 8]
+c.sql();
+// ->
+// '(x BETWEEN ? AND ?)
+//  OR
+//  (y != ?)
+//  OR
+//  (
+//    (x != LOG(y, ?))
+//    AND
+//    (x < ?)
+//  )'
+c.params();
+// -> [5, 10, 12, 4, 10]
 ```
 
-### param array explosion
-
-if a param is an array the corresponding binding `?` is exploded into a list of `?`:
-
-``` js
-var c = criterion('x = ? AND y IN (?)', 7, [8, 9, 10]);
-
-c.sql();        // -> 'x = ? AND y IN (?, ?, ?)'
-c.params();     // -> [7, 8, 9, 10]
-
-var c = criterion('x = ? AND (y && ARRAY[?])', 7, [8, 9, 10]);
-
-c.sql();        // -> 'x = ? AND (y && ARRAY[?, ?, ?])'
-c.params();     // -> [7, 8, 9, 10]
-```
+the fact that [mohair](http://github.com/snd/mohair)-queries are *sql-fragments*
+makes the creation of criteria with subqueries quite elegant:
+[see the examples !](#subqueries)
 
 ## for users of mesa and mohair
 
@@ -354,18 +373,9 @@ refines
 
 this is one of the nice properties of mohair and mesa.
 
-#### IMPORTANT !
+## condition-object reference by example
 
-**
-this is the readme for criterion@0.4.0.
-criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
-it will be used very very soon !
-to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
-to see what has changed in 0.4.0 [click here](#changelog).
-**
-
-
-## reference by example
+*the first example in each section is always the preferred way !*
 
 ### equal
 
@@ -532,30 +542,6 @@ or
 var c = criterion('x > ? AND y >= ?', 3, 4);
 ```
 
-### between
-
-where `x` is between `5` and `10`
-
-example of raw sql
-
-``` js
-var c = criterion('x BETWEEN ? AND ?', 5, 10);
-c.sql();    // -> 'x BETWEEN ? AND ?'
-c.params(); // -> [5, 10]
-```
-
-### sql function
-
-where `x != LOG(y, 4)`
-
-example of raw sql combined with
-
-``` js
-var c = criterion({x: {$ne: criterion('LOG(y, ?)', 4)}});
-c.sql();    // -> 'x != (LOG(y, ?))'
-c.params(); // -> [4]
-```
-
 ### null
 
 where `x` is `null`
@@ -630,7 +616,12 @@ var c = criterion('x NOT IN (?)', [1, 2, 3]);
 
 [see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
-### in subquery
+### subquery
+
+the fact that [mohair](http://github.com/snd/mohair)-queries are *sql-fragments*
+makes the creation of criteria with subqueries quite elegant.
+
+#### in subquery
 
 where `x` is in subquery
 
@@ -652,7 +643,7 @@ object that has an `sql()` function!
 
 [see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
-### not in subquery
+#### not in subquery
 
 where `x` is in subquery
 
@@ -672,7 +663,7 @@ c.params(); // -> [true]
 [mesa](https://github.com/snd/mesa)-query-object and any other
 object that has an `sql()` function!
 
-### subquery returns any rows
+#### subquery returns any rows
 
 ``` js
 # TODO this isnt right
@@ -693,7 +684,7 @@ object that has an `sql()` function!
 
 [see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
-### compare to any in subquery
+#### compare to any in subquery
 
 ``` js
 var subquery = mohair
@@ -712,13 +703,42 @@ any.sql();    // -> 'x != ANY (SELECT * FROM post WHERE is_published = ?)'
 any.params(); // -> [true]
 ```
 
-`subquery` can be any [mohair](https://github.com/snd/mohair)-query-object,
-[mesa](https://github.com/snd/mesa)-query-object and any other
-object that has an `sql()` function!
+`subquery` can be any [sql-fragment](#sql-fragment)
 
 [see also the postgres documentation on row and array comparisons](http://www.postgresql.org/docs/9.3/static/functions-comparisons.html)
 
-### compare to all in subquery
+#### compare to all in subquery
+
+TODO
+
+#### row-wise comparison with subqueries
+
+find published posts that were created strictly-before the user with `id = 1` was created:
+
+``` js
+var mohair = require('mohair');
+
+var creationDateOfUserWithId1 = mohair
+  .table('user')
+  .where({id: 1})
+  .select('created_at');
+
+var postsCreatedBeforeUser = mohair
+  .table('post')
+  .where({is_published: true})
+  .where({created_at: {$lt: creationDateOfUserWithId1}});
+
+postsCreatedBeforeUser.sql();
+// ->
+// 'SELECT *
+//  FROM post
+//  WHERE is_published = ?
+//  AND created_at < (SELECT created_at FROM user WHERE id = ?)'
+postsCreatedBeforeUser.params();
+// -> [true, 1]
+```
+
+## advanced topics
 
 ### combining criteria with `and`
 
@@ -776,6 +796,23 @@ c.sql(escape);  // -> '"x" = ? AND "y" = ?' <- x and y are escaped !
 c.params();     // -> [7, 8]
 ```
 
+### param array explosion
+
+if a parameter binding is an array then
+the corresponding binding `?` is exploded into a list of `?`:
+
+``` js
+var c = criterion('x = ? AND y IN (?)', 7, [8, 9, 10]);
+
+c.sql();        // -> 'x = ? AND y IN (?, ?, ?)'
+c.params();     // -> [7, 8, 9, 10]
+
+var c = criterion('x = ? AND (y && ARRAY[?])', 7, [8, 9, 10]);
+
+c.sql();        // -> 'x = ? AND (y && ARRAY[?, ?, ?])'
+c.params();     // -> [7, 8, 9, 10]
+```
+
 ## changelog
 
 ### 0.4.0
@@ -797,6 +834,7 @@ c.params();     // -> [7, 8]
 
 ## TODO
 
+- start all result comments on a new line
 - sections in reference
   - boolean operators
 - document query nesting
