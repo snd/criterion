@@ -6,7 +6,7 @@ internals = {}
 ###################################################################################
 # HELPERS
 
-internals.helper = helper = {}
+helper = {}
 
 # return a new object which has `proto` as its prototype and
 # all properties in `properties` as its own properties.
@@ -387,3 +387,4 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
 # make the internals available to mesa, mohair
 # and any other module that needs them
 module.exports.internals = internals
+module.exports.helper = helper

@@ -4,7 +4,7 @@ var beget, comparisonNameToOperatorMapping, criterionFactory, explodeObject, fac
 
 internals = {};
 
-internals.helper = helper = {};
+helper = {};
 
 helper.beget = beget = function(proto, properties) {
   var key, object, value, _fn;
@@ -446,3 +446,5 @@ module.exports = criterionFactory = function() {
 };
 
 module.exports.internals = internals;
+
+module.exports.helper = helper;
