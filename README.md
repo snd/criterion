@@ -4,6 +4,17 @@
 [![Build Status](https://travis-ci.org/snd/criterion.svg?branch=master)](https://travis-ci.org/snd/criterion/branches)
 [![Dependencies](https://david-dm.org/snd/criterion.svg)](https://david-dm.org/snd/criterion)
 
+#### IMPORTANT !
+
+**
+this is the readme for criterion@0.4.0.
+criterion@0.4.0 is a work in progress and not yet published to npm.
+criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
+it will be used very very soon !
+to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
+to see what has changed in 0.4.0 [click here](#changelog).
+**
+
 > criterion lifts SQL-where-conditions from strings into the realm of data:
 data has the advantage to be programmatically accessible and formable than strings.
 is a **highly flexible** and powerful, yet simple solution for modelling
@@ -16,16 +27,6 @@ easily build up and manipulated with code.
 
 > criterion parses SQL-where-conditions from a mongodb-like query-language into
 > composable objects it can compile to SQL
-
-#### WARNING !
-
-**
-this is the readme for criterion@0.4.0.
-criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
-it will be used very very soon !
-to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
-to see what has changed in 0.4.0 [click here](#changelog).
-**
 
 - [background](#background)
 - [introduction](#get-started)
