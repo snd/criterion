@@ -129,17 +129,17 @@ rawSql = (sql, params = []) ->
   beget prototypes.rawSql, {_sql: sql, _params: params}
 
 ###################################################################################
-# escaped
+# escape
 
-prototypes.escaped = beget prototypes.base,
+prototypes.escape = beget prototypes.base,
   sql: (escape) ->
     return escape @_sql
   params: ->
     []
   dontWrap: true
 
-dsl.escaped = (sql) ->
-  beget prototypes.escaped, {_sql: sql}
+dsl.escape = (sql) ->
+  beget prototypes.escape, {_sql: sql}
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
@@ -364,7 +364,7 @@ criterion = (firstArg, restArgs...) ->
 
   # column name
   key = Object.keys(firstArg)[0]
-  keyFragment = dsl.escaped key
+  keyFragment = dsl.escape key
   value = firstArg[key]
 
   # FROM HERE ON `firstArg` IS A CONDITION-OBJECT WITH EXACTLY ONE KEY-VALUE-MAPPING:
