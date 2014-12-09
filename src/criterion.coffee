@@ -279,28 +279,48 @@ dsl.subquery = (operator, left, right) ->
     return dsl.subquery operator, left, right
 
 ###################################################################################
-# boolean: and, or
+# and
 
-prototypes.boolean = beget prototypes.base,
+isAnd = (x) ->
+  prototypes.and.isPrototypeOf x
+
+prototypes.and = beget prototypes.base,
   sql: (escape = identity) ->
-    parts = @_operands.map (x) -> "#{normalizeSql(x, escape)}"
-    return parts.join " #{@_operator} "
+    parts = @_operands.map (x) ->
+      # we don't have to wrap ANDs inside an AND
+      ignoreWrap = isAnd x
+      normalizeSql(x, escape, ignoreWrap)
+    return parts.join " AND "
   params: ->
     params = []
     @_operands.forEach (c) ->
       params = params.concat c.params()
     return params
 
-dsl.boolean = (operator, operands...) ->
-  beget prototypes.boolean,
-    _operator: operator
-    _operands: flatten operands
-
 dsl.and = (operands...) ->
-  dsl.boolean 'AND', operands...
+  beget prototypes.and, {_operands: flatten operands}
+
+###################################################################################
+# and
+
+isOr = (x) ->
+  prototypes.or.isPrototypeOf x
+
+prototypes.or = beget prototypes.base,
+  sql: (escape = identity) ->
+    parts = @_operands.map (x) ->
+      # we don't have to wrap ORs inside an OR
+      ignoreWrap = isOr x
+      normalizeSql(x, escape, ignoreWrap)
+    return parts.join " OR "
+  params: ->
+    params = []
+    @_operands.forEach (c) ->
+      params = params.concat c.params()
+    return params
 
 dsl.or = (operands...) ->
-  dsl.boolean 'OR', operands...
+  beget prototypes.or, {_operands: flatten operands}
 
 ###################################################################################
 # MAIN FACTORY
