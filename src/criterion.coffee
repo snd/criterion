@@ -337,9 +337,6 @@ dsl.or = (operands...) ->
 # when called with a string
 
 criterion = (firstArg, restArgs...) ->
-  if implementsSqlFragmentInterface firstArg
-    return firstArg
-
   typeOfFirstArg = typeof firstArg
 
   # invalid arguments?
@@ -363,12 +360,23 @@ criterion = (firstArg, restArgs...) ->
     # valid raw sql !
     return rawSql firstArg, restArgs
 
+  # if there is more than one argument and the first isnt a string
+  # map criterion over all arguments and AND them together
+
+  if restArgs.length isnt 0
+    return dsl.and [firstArg].concat(restArgs).map (x) -> criterion x
+
+  # FROM HERE ON THERE IS ONLY A SINGLE ARGUMENT
+
+  if implementsSqlFragmentInterface firstArg
+    return firstArg
+
   # array of condition objects?
   if Array.isArray firstArg
     if firstArg.length is 0
       throw new Error 'condition-object is an empty array'
     # let's AND them together
-    return dsl.and firstArg.map criterion
+    return dsl.and firstArg.map (x) -> criterion x
 
   # FROM HERE ON `firstArg` IS A CONDITION OBJECT
 
@@ -380,7 +388,7 @@ criterion = (firstArg, restArgs...) ->
   # if there is more than one key in the condition-object
   # cut it up into objects with one key and AND them together
   if keyCount > 1
-    return dsl.and explodeObject(firstArg).map criterion
+    return dsl.and explodeObject(firstArg).map (x) -> criterion x
 
   # column name
   key = Object.keys(firstArg)[0]
@@ -394,10 +402,10 @@ criterion = (firstArg, restArgs...) ->
     throw new TypeError "value undefined or null for key #{key}"
 
   if key is '$and'
-    return dsl.and explodeObject(value).map criterion
+    return dsl.and explodeObject(value).map (x) -> criterion x
 
   if key is '$or'
-    return dsl.or explodeObject(value).map criterion
+    return dsl.or explodeObject(value).map (x) -> criterion x
 
   if key is '$not'
     return dsl.not criterion value
