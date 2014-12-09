@@ -63,22 +63,23 @@ helper.flatten = flatten = (array) ->
   [].concat array...
 
 # sql-fragments are treated differently in many situations
-
 helper.implementsSqlFragmentInterface = implementsSqlFragmentInterface = (value) ->
   value? and 'function' is typeof value.sql and 'function' is typeof value.params
 
-# if thing is not an sql fragment treat it as a value
+# normalize sql for fragments and values
 helper.normalizeSql = normalizeSql = (fragmentOrValue, escape, ignoreWrap = false) ->
   if implementsSqlFragmentInterface fragmentOrValue
     sql = fragmentOrValue.sql(escape)
     if ignoreWrap or fragmentOrValue.dontWrap then sql else '(' + sql + ')'
   else
+    # if thing is not an sql fragment treat it as a value
     "?"
 
-# if thing is not an sql fragment treat it as a value
+# normalize params for fragments and values
 helper.normalizeParams = normalizeParams = (fragmentOrValue) ->
   if implementsSqlFragmentInterface fragmentOrValue
     fragmentOrValue.params()
+  # if thing is not an sql fragment treat it as a value
   else
     [fragmentOrValue]
 
@@ -89,9 +90,8 @@ helper.normalizeParams = normalizeParams = (fragmentOrValue) ->
 
 prototypes = {}
 
-# factory functions that make such objects by prototypically inheriting from the prototypes
-
 dsl = {}
+
 modifiers = {}
 
 # the base prototype for all other prototypes:
