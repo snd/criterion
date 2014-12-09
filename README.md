@@ -6,7 +6,8 @@
 
 > criterion lifts SQL-where-conditions from strings into the realm of data:
 data has the advantage to be programmatically accessible and formable than strings.
-is a highly flexible and powerful, yet simple solution for modelling
+is a **highly flexible** and powerful, yet simple solution for modelling
+extendable
 easily build up and manipulated with code.
 > be easily
 > can be manipulated and composed.
@@ -27,7 +28,7 @@ to see what has changed in 0.4.0 [click here](#changelog).
 **
 
 - [background](#background)
-- [get started](#get-started)
+- [introduction](#get-started)
   - [install (`npm install criterion`)](#install)
   - [require (`var criterion = require('criterion');`)](#require)
   - [condition-objects (`var c = criterion({x: 7, y: {$lt: 5}});`)](#condition-objects)
@@ -50,8 +51,8 @@ to see what has changed in 0.4.0 [click here](#changelog).
     - [in list (`{x: [1, 2, 3]}` -> `x IN (?, ?, ?)`)](#in-list)
     - [not in list (`{x: {$nin: [1, 2, 3]}}` -> `x NOT IN (?, ?, ?)`)](#not-in-list)
   - [subqueries](#subqueries)
-    - [in subquery](#in-subquery)
-    - [not in subquery](#not-in-subquery)
+    - [in subquery (`{x: subquery}` -> `x IN subquery`)](#in-subquery)
+    - [not in subquery (`{x: {$nin: subquery}}` -> `x NOT IN subquery`)](#not-in-subquery)
     - [exists - whether subquery returns any rows](#exists-whether-subquery-returns-any-rows)
     - [row-wise comparison with subqueries](#row-wise-comparison-with-subqueries)
 - [advanced topics](#advanced-topics)
@@ -65,10 +66,14 @@ to see what has changed in 0.4.0 [click here](#changelog).
 
 ## background
 
-criterion is part of three libraries for nodejs that strive to
+criterion is part of three libraries for nodejs that make SQL with nodejs:
+
+- [simple](http://www.infoq.com/presentations/Simple-Made-Easy),
+- DRY
+- extendable
+- well documented
 
 > make SQL with Nodejs
-> [simple](http://www.infoq.com/presentations/Simple-Made-Easy),
 > succinct,
 > DRY,
 > functional
@@ -77,7 +82,6 @@ criterion is part of three libraries for nodejs that strive to
 > flexible
 - free
 - close to the metal (sql, database, database-driver)
-- well documented
 - and FUN !
 
 - succinct 
@@ -116,7 +120,7 @@ uses [mohair](http://github.com/snd/mohair) to build its SQL-queries.
 
 uses [criterion](http://github.com/snd/criterion) (through [mohair](http://github.com/snd/mohair)) to build and combine its SQL-where-clauses.
 
-## get started
+## introduction
 
 ### install
 
@@ -327,6 +331,43 @@ and then use them directly in *condition-objects*.
 this makes the creation of SQL-where-conditions that contain subqueries quite elegant:
 [see the examples !](#subqueries)
 
+#### making your own fragments
+
+if we wanted to support [see also](http://www.postgresql.org/docs/9.4/static/functions-json.html)
+
+``` js
+
+var pgJsonGet = function(left, right) {
+  var leftF = criterion.coerceToSqlFragment(left);
+  var rightF = criterion.coerceToSqlFragment(right);
+  return {
+    sql: function(escape) {
+      return left.sql(escape) + 
+    },
+    params: function() {
+
+    }
+  };
+};
+```
+
+and use them like this
+
+``` js
+var c = criterion({
+  $or: [
+    criterion('x BETWEEN ? AND ?', 5, 10),
+    {y: {$ne: 12}}
+    [
+      criterion('x != LOG(y, ?)', 4)}}),
+      {x: {$lt: 10}}
+    ]
+  ]
+});
+```
+
+there is a library that does that for you.
+
 ## for users of mesa and mohair
 
 [EVERYTHING possible with criterion](http://github.com/snd/criterion#reference-by-example) is possible
@@ -399,14 +440,16 @@ this is one of the nice properties of mohair and mesa.
 
 ## condition-object reference by example
 
-*the first example (before the first "or") in each section is
-always the preferred way of doing things !*
+*for each section several examples are given and seperated by "or".
+the criteria created in the examples behave identical.
+the first example in each section
+uses condition-objects and is always the preferred way of doing things !*
 
 ### comparisons
 
 #### equal
 
-where `x = 7`
+where `x = 7`:
 
 ``` js
 var c = criterion({x: 7});
@@ -416,15 +459,21 @@ c.params();
 // -> [7]
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x = ?', 7);
 ```
 
+or functional:
+
+``` js
+var c = criterion.eq(criterion.escaped(x), 7);
+```
+
 #### not equal
 
-where `x != 3`
+where `x != 3`:
 
 ``` js
 var c = criterion({x: {$ne: 3}});
@@ -432,15 +481,21 @@ c.sql();    // -> 'x != ?'
 c.params(); // -> [3]
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x != ?', 3);
 ```
 
+or functional:
+
+``` js
+var c = criterion.ne(criterion.escaped(x), 3);
+```
+
 #### lower than
 
-where `x < 3` and `y <= 4`
+where `x < 3` and `y <= 4`:
 
 ``` js
 var c = criterion({x: {$lt: 3}, y: {$lte: 4}});
@@ -449,14 +504,25 @@ c.sql();
 c.params();
 // -> [3, 4]
 ```
-or
+
+or raw:
+
 ``` js
 var c = criterion('x < ? AND y <= ?', 3, 4);
 ```
 
+or functional:
+
+``` js
+var c = criterion.and(
+  criterion.lt(criterion.escaped('x'), 3),
+  criterion.lte(criterion.escaped('y'), 4)
+);
+```
+
 #### greater than
 
-where `x > 3` and `y >= 4`
+where `x > 3` and `y >= 4`:
 
 ``` js
 var c = criterion({x: {$gt: 3}, y: {$gte: 4}});
@@ -466,10 +532,19 @@ c.params();
 // -> [3, 4]
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x > ? AND y >= ?', 3, 4);
+```
+
+or functional:
+
+``` js
+var c = criterion.and(
+  criterion.gt(criterion.escaped('x'), 3),
+  criterion.gte(criterion.escaped('y'), 4)
+);
 ```
 
 #### null
@@ -484,15 +559,22 @@ c.params();
 // -> []
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x IS NULL');
 ```
 
+or functional:
+
+``` js
+var c = criterion.null(criterion.escaped('x'), true);
+// true is default
+```
+
 #### not null
 
-where `x` is not `null`
+where `x` is not `null`:
 
 ``` js
 var c = criterion({x: {$null: false}});
@@ -502,10 +584,16 @@ c.params();
 // -> []
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x IS NOT NULL');
+```
+
+or functional:
+
+``` js
+var c = criterion.null(criterion.escaped('x'), false);
 ```
 
 ### boolean operations
@@ -514,7 +602,7 @@ var c = criterion('x IS NOT NULL');
 
 #### and
 
-where `x = 7` and `y = 'a'`
+where `x = 7` and `y = 'a'`:
 
 ``` js
 var c = criterion({x: 7, y: 'a'});
@@ -524,33 +612,42 @@ c.params();
 // -> [7, 'a']
 ```
 
-or
+or using an array:
 
 ``` js
 var c = criterion([{x: 7}, {y: 'a'}]);
 ```
 
-or
+or more verbose:
 
 ``` js
 var c = criterion({$and: {x: 7, y: 'a'}});
 ```
 
-or
+or more verbose using an array:
 
 ``` js
 var c = criterion({$and: [{x: 7}, {y: 'a'}]});
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x = ? AND y = ?', 7, 'a');
 ```
 
+or functional:
+
+``` js
+var c = criterion.and(
+  criterion.eq(criterion.escaped('x'), 7),
+  criterion.eq(criterion.escaped('y'), 'a')
+);
+```
+
 #### or
 
-where `x = 7` or `y = 6`
+where `x = 7` or `y = 6`:
 
 ``` js
 var c = criterion({$or: {x: 7, y: 6}});
@@ -560,21 +657,30 @@ c.params();
 // -> [7, 6]
 ```
 
-or
+or using an array:
 
 ``` js
 var c = criterion({$or: [{x: 7}, {y: 6}]});
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x = ? OR y = ?', 7, 6);
 ```
 
+or functional:
+
+``` js
+var c = criterion.or(
+  criterion.eq(criterion.escaped('x'), 7),
+  criterion.eq(criterion.escaped('y'), 6)
+);
+```
+
 #### not
 
-where not (`x > 3` and `y >= 4`)
+where not (`x > 3` and `y >= 4`):
 
 ``` js
 var c = criterion({$not: {x: {$gt: 3}, y: {$gte: 4}}});
@@ -584,10 +690,21 @@ c.params();
 // -> [3, 4]
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('NOT (x > ? AND y >= ?)', 3, 4);
+```
+
+or functional:
+
+``` js
+var c = criterion.not(
+  criterion.and(
+    criterion.eq(criterion.escaped('x'), 3),
+    criterion.eq(criterion.escaped('y'), 4)
+  )
+);
 ```
 
 `$or`, `$and` and `$not` can be nested arbitrarily.
@@ -608,16 +725,22 @@ c.params();
 // -> [1,2,3]
 ```
 
-or
+or more verbose:
 
 ``` js
 var c = criterion({x: {$in: [1, 2, 3]}});
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x IN (?)', [1, 2, 3]);
+```
+
+or functional:
+
+``` js
+var c = criterion.in(criterion.escaped('x'), [1, 2, 3]);
 ```
 
 #### not in list
@@ -632,10 +755,16 @@ c.params();
 // -> [1,2,3]
 ```
 
-or
+or raw:
 
 ``` js
 var c = criterion('x NOT IN (?)', [1, 2, 3]);
+```
+
+or functional:
+
+``` js
+var c = criterion.nin(criterion.escaped('x'), [1, 2, 3]);
 ```
 
 ### subqueries
@@ -651,7 +780,7 @@ this makes the creation of SQL-where-conditions that contain subqueries quite el
 
 #### in subquery
 
-where `x` is in subquery
+where `x` is in subquery:
 
 ``` js
 var subquery = mohair
@@ -667,9 +796,15 @@ c.params();
 // -> [true]
 ```
 
+or functional:
+
+``` js
+var c = criterion.in(criterion.escaped('x'), subquery);
+```
+
 #### not in subquery
 
-where `x` is not in subquery
+where `x` is not in subquery:
 
 ``` js
 var subquery = mohair
@@ -683,6 +818,12 @@ c.sql();
 // -> 'x NOT IN (SELECT id FROM post WHERE is_published = ?)'
 c.params();
 // -> [true]
+```
+
+or functional:
+
+``` js
+var c = criterion.nin(criterion.escaped('x'), subquery);
 ```
 
 #### subquery returns any rows
@@ -702,6 +843,12 @@ c.params();
 // -> [true]
 ```
 
+or functional:
+
+``` js
+var c = criterion.exists(subquery);
+```
+
 #### compare to any/all in subquery
 
 ``` js
@@ -716,6 +863,12 @@ c.sql();
 // -> 'x = ANY (SELECT * FROM post WHERE is_published = ?)'
 c.params();
 // -> [true]
+```
+
+or functional:
+
+``` js
+var c = criterion.any(criterion.escaped('x'), subquery);
 ```
 
 criterion supports
@@ -817,7 +970,7 @@ c.params();
 
 ### param array explosion
 
-if a parameter binding is an array then
+if a parameter binding for raw sql is an array then
 the corresponding binding `?` is exploded into a list of `?`:
 
 ``` js
@@ -857,6 +1010,7 @@ c.params();
   - ...
 - bugfixes
   - made some (exotic) condition-objects work which didn't work before
+- exported a dsl
 - major improvements to
   - code quality
   - tests
@@ -864,3 +1018,14 @@ c.params();
   - documentation
 
 ## [license: MIT](LICENSE)
+
+## TODO
+
+- a functional interface through the factories directly
+  - `c.and()`
+  - `c.eq()`
+  - often the left side of an operation is just a column or a table qualified column
+- atoms are treated as values
+- dontWrap
+  - says how outer fragments should handle this fragment
+  - things are only wrapped when inside of something
