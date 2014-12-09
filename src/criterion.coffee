@@ -171,12 +171,14 @@ comparisonTable = [
 
 prototypes.null = beget prototypes.base,
   sql: (escape = identity) ->
-    "#{normalizeSql(@_left, escape)} IS #{if @_isNull then '' else 'NOT '}NULL"
+    "#{normalizeSql(@_operand, escape)} IS #{if @_isNull then '' else 'NOT '}NULL"
   params: ->
-    normalizeParams(@_left)
+    normalizeParams(@_operand)
 
-dsl.null = modifiers.$null = (left, isNull) ->
-  beget prototypes.null, {_left: left, _isNull: isNull}
+dsl.null = modifiers.$null = (operand, isNull = true) ->
+  unless operand?
+    throw new Error '`null` needs an operand'
+  beget prototypes.null, {_operand: operand, _isNull: isNull}
 
 ###################################################################################
 # negation
@@ -197,7 +199,7 @@ isNegation = (x) ->
 
 dsl.not = (inner) ->
   unless implementsSqlFragmentInterface inner
-    throw new Error 'argument to `not` must implement sql-fragment interface'
+    throw new Error '`not`: operand must implement sql-fragment interface'
   beget prototypes.not, {_inner: inner}
 
 ###################################################################################
@@ -261,6 +263,10 @@ dsl.subquery = (operator, left, right) ->
   {name: 'gteAll', modifier: '$gteAll', operator: '>= ALL'}
 ].forEach ({name, modifier, operator}) ->
   dsl[name] = modifiers[modifier] = (left, right) ->
+    unless left?
+      throw new Error "`#{name}` needs left operand"
+    unless right?
+      throw new Error "`#{name}` needs right operand"
     if Array.isArray right
       if name in ['in', 'nin']
         if right.length is 0
@@ -297,11 +303,17 @@ prototypes.and = beget prototypes.base,
       params = params.concat c.params()
     return params
 
-dsl.and = (operands...) ->
-  beget prototypes.and, {_operands: flatten operands}
+dsl.and = (args...) ->
+  operands = flatten args
+  if operands.length is 0
+    throw new Error "`and` needs at least one operand"
+  operands.forEach (x) ->
+    unless implementsSqlFragmentInterface x
+      throw new Error "`and`: all operands must implement sql-fragment interface"
+  beget prototypes.and, {_operands: operands}
 
 ###################################################################################
-# and
+# or
 
 isOr = (x) ->
   prototypes.or.isPrototypeOf x
@@ -319,8 +331,14 @@ prototypes.or = beget prototypes.base,
       params = params.concat c.params()
     return params
 
-dsl.or = (operands...) ->
-  beget prototypes.or, {_operands: flatten operands}
+dsl.or = (args...) ->
+  operands = flatten args
+  if operands.length is 0
+    throw new Error "`or` needs at least one operand"
+  operands.forEach (x) ->
+    unless implementsSqlFragmentInterface x
+      throw new Error "`or`: all operands must implement sql-fragment interface"
+  beget prototypes.or, {_operands: operands}
 
 ###################################################################################
 # MAIN FACTORY
