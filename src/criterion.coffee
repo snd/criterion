@@ -192,8 +192,8 @@ prototypes.not = beget prototypes.base,
   params: ->
     @_inner.params()
 
-isNegation = (c) ->
-  prototypes.not.isPrototypeOf c
+isNegation = (x) ->
+  prototypes.not.isPrototypeOf x
 
 dsl.not = (inner) ->
   unless implementsSqlFragmentInterface inner
