@@ -106,8 +106,8 @@ module.exports =
         'array of objects is joined with AND': (test) ->
           c = criterion [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]
 
-          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND (a = ?)'
-          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND (a = ?)'
+          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND a = ?'
+          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND a = ?'
           test.deepEqual c.params(), [7, 'foo', 2.5, 6]
 
           test.done()
@@ -124,8 +124,8 @@ module.exports =
         '$and with array': (test) ->
           c = criterion {$and: [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
 
-          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND (a = ?)'
-          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND (a = ?)'
+          test.equal c.sql(), '((x = ?) AND (y = ?)) AND (z = ?) AND a = ?'
+          test.equal c.sql(escape), '(("x" = ?) AND ("y" = ?)) AND ("z" = ?) AND a = ?'
           test.deepEqual c.params(), [7, 'foo', 2.5, 6]
 
           test.done()
@@ -142,8 +142,8 @@ module.exports =
         '$or with array': (test) ->
           c = criterion {$or: [{x: 7}, {y: 'foo'}, criterion('a = ?', 6)]}
 
-          test.equal c.sql(), '(x = ?) OR (y = ?) OR (a = ?)'
-          test.equal c.sql(escape), '("x" = ?) OR ("y" = ?) OR (a = ?)'
+          test.equal c.sql(), '(x = ?) OR (y = ?) OR a = ?'
+          test.equal c.sql(escape), '("x" = ?) OR ("y" = ?) OR a = ?'
           test.deepEqual c.params(), [7, 'foo', 6]
 
           test.done()
@@ -211,8 +211,8 @@ module.exports =
               }
           }
 
-          test.equal c.sql(), '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR (((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?)) OR (NOT ((alpha = ?) OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
-          test.equal c.sql(escape), '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR ((("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?)) OR (NOT ((alpha = ?) OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
+          test.equal c.sql(), '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR (((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?)) OR (NOT (alpha = ? OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
+          test.equal c.sql(escape), '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR ((("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?)) OR (NOT (alpha = ? OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
           test.deepEqual c.params(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
           test.done()
@@ -257,7 +257,7 @@ module.exports =
 
           test.done()
 
-        '$exists without params': (test) ->
+        '$exists': (test) ->
           subquery =
             sql: (escape) ->
               "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
@@ -394,8 +394,8 @@ module.exports =
       'equality with criterion argument': (test) ->
         c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
 
-        test.equal c.sql(), 'x = (crypt(?, gen_salt(?, ?)))'
-        test.equal c.sql(escape), '"x" = (crypt(?, gen_salt(?, ?)))'
+        test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
+        test.equal c.sql(escape), '"x" = crypt(?, gen_salt(?, ?))'
         test.deepEqual c.params(), ['password', 'bf', 4]
 
         test.done()
@@ -403,8 +403,8 @@ module.exports =
       '$ne with criterion argument': (test) ->
         c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
-        test.equal c.sql(), 'x != (crypt(?, gen_salt(?, ?)))'
-        test.equal c.sql(escape), '"x" != (crypt(?, gen_salt(?, ?)))'
+        test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
+        test.equal c.sql(escape), '"x" != crypt(?, gen_salt(?, ?))'
         test.deepEqual c.params(), ['password', 'bf', 4]
 
         test.done()
@@ -412,8 +412,8 @@ module.exports =
       '$lt with criterion argument': (test) ->
         c = criterion {x: {$lt: criterion('NOW()')}}
 
-        test.equal c.sql(), 'x < (NOW())'
-        test.equal c.sql(escape), '"x" < (NOW())'
+        test.equal c.sql(), 'x < NOW()'
+        test.equal c.sql(escape), '"x" < NOW()'
         test.deepEqual c.params(), []
 
         test.done()
@@ -426,7 +426,7 @@ module.exports =
 
       fstAndSnd = fst.and snd
 
-      test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND (z = ?)'
+      test.equal fstAndSnd.sql(), '((x = ?) AND (y = ?)) AND z = ?'
       test.deepEqual fstAndSnd.params(), [7, 'foo', true]
 
       test.done()
@@ -437,7 +437,7 @@ module.exports =
 
       sndOrFst = snd.or fst
 
-      test.equal sndOrFst.sql(), '(z = ?) OR ((x = ?) AND (y = ?))'
+      test.equal sndOrFst.sql(), 'z = ? OR ((x = ?) AND (y = ?))'
       test.deepEqual sndOrFst.params(), [true, 7, 'foo']
 
       test.done()
@@ -508,28 +508,28 @@ module.exports =
       try
         criterion {x: []}
       catch e
-        test.equal e.message, '$in key with empty array value'
+        test.equal e.message, '`in` with empty array as right operand'
         test.done()
 
     '$nin with empty array': (test) ->
       try
         criterion {x: {$nin: []}}
       catch e
-        test.equal e.message, '$nin key with empty array value'
+        test.equal e.message, '`nin` with empty array as right operand'
         test.done()
 
     '$any with array': (test) ->
       try
         criterion {x: {$any: [1]}}
       catch e
-        test.equal e.message, "$any key doesn't support array value. only $in and $nin do!"
+        test.equal e.message, "`any` doesn't support array as right operand. only `in` and `nin` do!"
         test.done()
 
     '$any with number': (test) ->
       try
         criterion {x: {$any: 6}}
       catch e
-        test.equal e.message, '$any key requires value that implements sql-fragment interface'
+        test.equal e.message, "`any` requires right operand that implements sql-fragment interface"
         test.done()
 
     'unknown modifier': (test) ->
@@ -549,19 +549,19 @@ module.exports =
       try
         criterion {$exists: 6}
       catch e
-        test.equal e.message, '$exists key requires value that implements sql-fragment interface'
+        test.equal e.message, "`exists` operand must implement sql-fragment interface"
         test.done()
 
     '$in without array or sql-fragment': (test) ->
       try
         criterion({x: {$in: 6}})
       catch e
-        test.equal e.message, '$in key requires value that is an array or implements sql-fragment interface'
+        test.equal e.message, "`in` requires right operand that is an array or implements sql-fragment interface"
         test.done()
 
     '$nin without array or sql-fragment': (test) ->
       try
         criterion({x: {$nin: 6}})
       catch e
-        test.equal e.message, '$nin key requires value that is an array or implements sql-fragment interface'
+        test.equal e.message, "`nin` requires right operand that is an array or implements sql-fragment interface"
         test.done()

@@ -1,8 +1,3 @@
-# this is later exported as module.exports.internals
-# to make the internals available to mesa, mohair
-# and any other module that needs them
-internals = {}
-
 ###################################################################################
 # HELPERS
 
@@ -72,25 +67,40 @@ helper.flatten = flatten = (array) ->
 helper.implementsSqlFragmentInterface = implementsSqlFragmentInterface = (value) ->
   value? and 'function' is typeof value.sql and 'function' is typeof value.params
 
+# if thing is not an sql fragment treat it as a value
+helper.normalizeSql = normalizeSql = (fragmentOrValue, escape, ignoreWrap = false) ->
+  if implementsSqlFragmentInterface fragmentOrValue
+    sql = fragmentOrValue.sql(escape)
+    if ignoreWrap or fragmentOrValue.dontWrap then sql else '(' + sql + ')'
+  else
+    "?"
+
+# if thing is not an sql fragment treat it as a value
+helper.normalizeParams = normalizeParams = (fragmentOrValue) ->
+  if implementsSqlFragmentInterface fragmentOrValue
+    fragmentOrValue.params()
+  else
+    [fragmentOrValue]
+
 ###################################################################################
 # PROTOTYPES AND FACTORIES
 
 # prototype objects for the objects that describe parts of sql-where-conditions
 
-internals.prototypes = prototypes = {}
+prototypes = {}
 
 # factory functions that make such objects by prototypically inheriting from the prototypes
 
-internals.factories = factories = {}
-internals.modifierFactories = modifierFactories = {}
+dsl = {}
+modifiers = {}
 
 # the base prototype for all other prototypes:
 # all objects should have the logical operators not, and and or
 
 prototypes.base =
-  not: -> factories.not @
-  and: (other) -> factories.and [@, other]
-  or: (other) -> factories.or [@, other]
+  not: -> dsl.not @
+  and: (other) -> dsl.and [@, other]
+  or: (other) -> dsl.or [@, other]
 
 ###################################################################################
 # raw sql
@@ -113,169 +123,200 @@ prototypes.rawSql = beget prototypes.base,
 
   params: ->
     flatten @_params
+  dontWrap: true
 
-# params are entirely optional
-# casts to sql-fragment
-factories.rawSql = helper.rawSql = (sql, params = []) ->
-  if implementsSqlFragmentInterface sql
-    return sql
+rawSql = (sql, params = []) ->
   beget prototypes.rawSql, {_sql: sql, _params: params}
+
+###################################################################################
+# escaped
+
+prototypes.escaped = beget prototypes.base,
+  sql: (escape) ->
+    return escape @_sql
+  params: ->
+    []
+  dontWrap: true
+
+dsl.escaped = (sql) ->
+  beget prototypes.escaped, {_sql: sql}
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
 
 prototypes.comparison = beget prototypes.base,
   sql: (escape = identity) ->
-    if implementsSqlFragmentInterface @_value
-      # put fragment in parentheses
-      "#{escape @_key} #{@_operator} (#{@_value.sql(escape)})"
-    else
-      "#{escape @_key} #{@_operator} ?"
+    "#{normalizeSql @_left, escape} #{@_operator} #{normalizeSql @_right, escape}"
   params: ->
-    if implementsSqlFragmentInterface @_value
-      @_value.params()
-    else
-      [@_value]
+    normalizeParams(@_left).concat normalizeParams(@_right)
 
-comparisonNameToOperatorMapping =
-  $eq: '='
-  $ne: '!='
-  $lt: '<'
-  $lte: '<='
-  $gt: '>'
-  $gte: '>='
+# for when you need arbitrary comparison operators
+dsl.compare = (operator, left, right) ->
+  beget prototypes.comparison, {_left: left, _right: right, _operator: operator}
 
-for name, operator of comparisonNameToOperatorMapping
-  do (name, operator) ->
-    modifierFactories[name] = (key, value) ->
-      beget prototypes.comparison, {_key: key, _value: value, _operator: operator}
+# make dsl functions and modifier functions for the most common comparison operators
+comparisonTable = [
+  {name: 'eq', modifier: '$eq', operator: '='}
+  {name: 'ne', modifier: '$ne', operator: '!='}
+  {name: 'lt', modifier: '$lt', operator: '<'}
+  {name: 'lte', modifier: '$lte', operator: '<='}
+  {name: 'gt', modifier: '$gt', operator: '>'}
+  {name: 'gte', modifier: '$gte', operator: '>='}
+].forEach ({name, modifier, operator}) ->
+  dsl[name] = modifiers[modifier] = (left, right) ->
+    dsl.compare operator, left, right
 
 ###################################################################################
 # null
 
 prototypes.null = beget prototypes.base,
   sql: (escape = identity) ->
-    "#{escape @_key} IS #{if @_isNull then '' else 'NOT '}NULL"
+    "#{normalizeSql(@_left, escape)} IS #{if @_isNull then '' else 'NOT '}NULL"
   params: ->
-    []
+    normalizeParams(@_left)
 
-modifierFactories.$null = (k, isNull) ->
-  beget prototypes.null, {_key: k, _isNull: isNull}
+dsl.null = modifiers.$null = (left, isNull) ->
+  beget prototypes.null, {_left: left, _isNull: isNull}
 
 ###################################################################################
 # negation
 
 prototypes.not = beget prototypes.base,
-  innerCriterion: -> @_criterion._criterion
   sql: (escape = identity) ->
     # remove double negation
-    if isNegation @_criterion
-      @innerCriterion().sql(escape)
-    else "NOT (#{@_criterion.sql(escape)})"
+    if isNegation @_inner
+      ignoreWrap = true
+      normalizeSql(@_inner._inner, escape, ignoreWrap)
+    else
+      "NOT #{normalizeSql(@_inner, escape)}"
   params: ->
-    @_criterion.params()
+    @_inner.params()
 
 isNegation = (c) ->
   prototypes.not.isPrototypeOf c
 
-factories.not = (criterion) ->
-  beget prototypes.not, {_criterion: criterion}
+dsl.not = (inner) ->
+  unless implementsSqlFragmentInterface inner
+    throw new Error 'argument to `not` must implement sql-fragment interface'
+  beget prototypes.not, {_inner: inner}
 
 ###################################################################################
 # exists
 
 prototypes.exists = beget prototypes.base,
   sql: (escape = identity) ->
-    "EXISTS (#{@_value.sql escape})"
+    "EXISTS #{normalizeSql(@_operand, escape)}"
   params: ->
-    @_value.params()
+    @_operand.params()
 
-factories.exists = (value) ->
-  unless implementsSqlFragmentInterface value
-    throw new TypeError '$exists key requires value that implements sql-fragment interface'
-  beget prototypes.exists, {_value: value}
+dsl.exists = (operand) ->
+  unless implementsSqlFragmentInterface operand
+    throw new Error '`exists` operand must implement sql-fragment interface'
+  beget prototypes.exists, {_operand: operand}
 
 ###################################################################################
 # subquery expressions: in, nin, any, neAny, ...
 
 prototypes.subquery = beget prototypes.base,
   sql: (escape = identity) ->
-    if implementsSqlFragmentInterface @_value
-      "#{escape @_key} #{@_operator} (#{@_value.sql escape})"
+    sql = ""
+    sql += normalizeSql @_left, escape
+    sql += " #{@_operator} "
+    if implementsSqlFragmentInterface @_right
+      sql += "#{normalizeSql(@_right, escape)}"
     else
       questionMarks = []
-      @_value.forEach -> questionMarks.push '?'
-      "#{escape @_key} #{@_operator} (#{questionMarks.join ', '})"
+      @_right.forEach -> questionMarks.push '?'
+      sql += "(#{questionMarks.join ', '})"
+    return sql
   params: ->
-    if implementsSqlFragmentInterface @_value
-      @_value.params()
+    params = normalizeParams @_left
+    if implementsSqlFragmentInterface @_right
+      params = params.concat @_right.params()
     else
       # only for $in and $nin: in that case @_value is already an array
-      @_value
+      params = params.concat @_right
+    return params
 
-subqueryNameToOperatorMapping =
-  $in: 'IN'
-  $nin: 'NOT IN'
-  $any: '= ANY'
-  $neAny: '!= ANY'
-  $ltAny: '< ANY'
-  $lteAny: '<= ANY'
-  $gtAny: '> ANY'
-  $gteAny: '>= ANY'
-  $all: '= ALL'
-  $neAll: '!= ALL'
-  $ltAll: '< ALL'
-  $lteAll: '<= ALL'
-  $gtAll: '> ALL'
-  $gteAll: '>= ALL'
+dsl.subquery = (operator, left, right) ->
+  beget prototypes.subquery, {_left: left, _right: right, _operator: operator}
 
-for name, operator of subqueryNameToOperatorMapping
-  do (name, operator) ->
-    modifierFactories[name] = (key, value) ->
-      if Array.isArray value
-        if name in ['$in', '$nin']
-          if value.length is 0
-            throw new Error "#{name} key with empty array value"
-        else
-          # only $in and $nin support arrays
-          throw new TypeError "#{name} key doesn't support array value. only $in and $nin do!"
-      # not array
+# make dsl functions and modifier functions for common subquery operators
+[
+  {name: 'in', modifier: '$in', operator: 'IN'}
+  {name: 'nin', modifier: '$nin', operator: 'NOT IN'}
+
+  {name: 'any', modifier: '$any', operator: '= ANY'}
+  {name: 'neAny', modifier: '$neAny', operator: '!= ANY'}
+  {name: 'ltAny', modifier: '$ltAny', operator: '< ANY'}
+  {name: 'lteAny', modifier: '$lteAny', operator: '<= ANY'}
+  {name: 'gtAny', modifier: '$gtAny', operator: '> ANY'}
+  {name: 'gteAny', modifier: '$gteAny', operator: '>= ANY'}
+
+  {name: 'all', modifier: '$all', operator: '= ALL'}
+  {name: 'neAll', modifier: '$neAll', operator: '!= ALL'}
+  {name: 'ltAll', modifier: '$ltAll', operator: '< ALL'}
+  {name: 'lteAll', modifier: '$lteAll', operator: '<= ALL'}
+  {name: 'gtAll', modifier: '$gtAll', operator: '> ALL'}
+  {name: 'gteAll', modifier: '$gteAll', operator: '>= ALL'}
+].forEach ({name, modifier, operator}) ->
+  dsl[name] = modifiers[modifier] = (left, right) ->
+    if Array.isArray right
+      if name in ['in', 'nin']
+        if right.length is 0
+          throw new Error "`#{name}` with empty array as right operand"
       else
-        unless implementsSqlFragmentInterface value
-          if name in ['$in', '$nin']
-            throw new TypeError "#{name} key requires value that is an array or implements sql-fragment interface"
-          else
-            throw new TypeError "#{name} key requires value that implements sql-fragment interface"
+        # only $in and $nin support arrays
+        throw new TypeError "`#{name}` doesn't support array as right operand. only `in` and `nin` do!"
+    # not array
+    else
+      unless implementsSqlFragmentInterface right
+        if name in ['in', 'nin']
+          throw new TypeError "`#{name}` requires right operand that is an array or implements sql-fragment interface"
+        else
+          throw new TypeError "`#{name}` requires right operand that implements sql-fragment interface"
 
-      beget prototypes.subquery, {_key: key, _value: value, _operator: operator}
+    return dsl.subquery operator, left, right
 
 ###################################################################################
-# combination: and, or
+# boolean: and, or
 
-prototypes.combination = beget prototypes.base,
+prototypes.boolean = beget prototypes.base,
   sql: (escape = identity) ->
-    parts = @_criteria.map (c) -> "(#{c.sql(escape)})"
+    parts = @_operands.map (x) -> "#{normalizeSql(x, escape)}"
     return parts.join " #{@_operator} "
-
   params: ->
     params = []
-    @_criteria.forEach (c) ->
+    @_operands.forEach (c) ->
       params = params.concat c.params()
     return params
 
-factories.and = (criteria) ->
-  beget prototypes.combination, {_criteria: criteria, _operator: 'AND'}
+dsl.boolean = (operator, operands...) ->
+  beget prototypes.boolean,
+    _operator: operator
+    _operands: flatten operands
 
-factories.or = (criteria) ->
-  beget prototypes.combination, {_criteria: criteria, _operator: 'OR'}
+dsl.and = (operands...) ->
+  dsl.boolean 'AND', operands...
+
+dsl.or = (operands...) ->
+  dsl.boolean 'OR', operands...
 
 ###################################################################################
 # MAIN FACTORY
 
+# always returns an sql-fragment.
+# can be used to normalize sql strings and fragments.
+
+# when called with a single sql fragment returns that fragment unchanged.
+#
+# when called with a list of 
+# when called with a condition-object parses that object into a fragment and returns it.
 # function that recursively constructs the object graph
 # of the criterion described by the arguments.
+# when called with a string
 
-module.exports = criterionFactory = (firstArg, restArgs...) ->
+criterion = (firstArg, restArgs...) ->
   if implementsSqlFragmentInterface firstArg
     return firstArg
 
@@ -300,14 +341,14 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
       throw new Error "params[#{emptyArrayParam.i}] is an empty array"
 
     # valid raw sql !
-    return factories.rawSql firstArg, restArgs
+    return rawSql firstArg, restArgs
 
   # array of condition objects?
   if Array.isArray firstArg
     if firstArg.length is 0
       throw new Error 'condition-object is an empty array'
     # let's AND them together
-    return factories.and firstArg.map criterionFactory
+    return dsl.and firstArg.map criterion
 
   # FROM HERE ON `firstArg` IS A CONDITION OBJECT
 
@@ -319,9 +360,11 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
   # if there is more than one key in the condition-object
   # cut it up into objects with one key and AND them together
   if keyCount > 1
-    return factories.and explodeObject(firstArg).map criterionFactory
+    return dsl.and explodeObject(firstArg).map criterion
 
+  # column name
   key = Object.keys(firstArg)[0]
+  keyFragment = dsl.escaped key
   value = firstArg[key]
 
   # FROM HERE ON `firstArg` IS A CONDITION-OBJECT WITH EXACTLY ONE KEY-VALUE-MAPPING:
@@ -331,23 +374,23 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
     throw new TypeError "value undefined or null for key #{key}"
 
   if key is '$and'
-    return factories.and explodeObject(value).map criterionFactory
+    return dsl.and explodeObject(value).map criterion
 
   if key is '$or'
-    return factories.or explodeObject(value).map criterionFactory
+    return dsl.or explodeObject(value).map criterion
 
   if key is '$not'
-    return factories.not criterionFactory value
+    return dsl.not criterion value
 
   if key is '$exists'
-    return factories.exists value
+    return dsl.exists value
 
   unless 'object' is typeof value
-    return modifierFactories.$eq key, value
+    return dsl.eq keyFragment, value
 
   # {x: [1, 2, 3]} is a shorthand for {x: {$in: [1, 2, 3]}}
   if Array.isArray value
-    return modifierFactories.$in key, value
+    return dsl.in keyFragment, value
 
   # FROM HERE ON `value` IS AN OBJECT AND NOT A NUMBER, STRING, ARRAY, ...
 
@@ -358,7 +401,7 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
   unless hasModifier
     # handle other objects which are values but have no modifiers
     # (dates for example) like primitives (strings, numbers)
-    return modifierFactories.$eq key, value
+    return dsl.eq keyFragment, value
 
   modifier = keys[0]
   innerValue = value[modifier]
@@ -368,14 +411,26 @@ module.exports = criterionFactory = (firstArg, restArgs...) ->
   unless innerValue?
     throw new TypeError "value undefined or null for key #{key} and modifier key #{modifier}"
 
-  modifierFactory = modifierFactories[modifier]
+  modifierFactory = modifiers[modifier]
 
   if modifierFactory?
-    return modifierFactory key, innerValue
+    return modifierFactory keyFragment, innerValue
 
   throw new Error "unknown modifier key #{modifier}"
 
-# make the internals available to mesa, mohair
+###################################################################################
+# EXPORTS
+
+module.exports = criterion
+
+# make the dsl available
+for key, value of dsl
+  do (key, value) ->
+    criterion[key] = value
+
+# make the helpers available to mesa, mohair
 # and any other module that needs them
-module.exports.internals = internals
-module.exports.helper = helper
+criterion.helper = helper
+
+# make prototypes available
+criterion.prototypes = prototypes
