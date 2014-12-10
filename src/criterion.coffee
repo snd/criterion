@@ -99,8 +99,8 @@ modifiers = {}
 
 prototypes.base =
   not: -> dsl.not @
-  and: (other) -> dsl.and [@, other]
-  or: (other) -> dsl.or [@, other]
+  and: (args...) -> dsl.and @, criterion args...
+  or: (args...) -> dsl.or @, criterion args...
 
 ###################################################################################
 # raw sql
