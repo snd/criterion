@@ -467,7 +467,7 @@ var c = criterion('x = ?', 7);
 or functional:
 
 ``` js
-var c = criterion.eq(criterion.escaped(x), 7);
+var c = criterion.eq(criterion.escape(x), 7);
 ```
 
 #### not equal
@@ -489,7 +489,7 @@ var c = criterion('x != ?', 3);
 or functional:
 
 ``` js
-var c = criterion.ne(criterion.escaped(x), 3);
+var c = criterion.ne(criterion.escape(x), 3);
 ```
 
 #### lower than
@@ -514,8 +514,8 @@ or functional:
 
 ``` js
 var c = criterion.and(
-  criterion.lt(criterion.escaped('x'), 3),
-  criterion.lte(criterion.escaped('y'), 4)
+  criterion.lt(criterion.escape('x'), 3),
+  criterion.lte(criterion.escape('y'), 4)
 );
 ```
 
@@ -541,8 +541,8 @@ or functional:
 
 ``` js
 var c = criterion.and(
-  criterion.gt(criterion.escaped('x'), 3),
-  criterion.gte(criterion.escaped('y'), 4)
+  criterion.gt(criterion.escape('x'), 3),
+  criterion.gte(criterion.escape('y'), 4)
 );
 ```
 
@@ -567,7 +567,7 @@ var c = criterion('x IS NULL');
 or functional:
 
 ``` js
-var c = criterion.null(criterion.escaped('x'), true);
+var c = criterion.null(criterion.escape('x'), true);
 // true is default
 ```
 
@@ -592,7 +592,7 @@ var c = criterion('x IS NOT NULL');
 or functional:
 
 ``` js
-var c = criterion.null(criterion.escaped('x'), false);
+var c = criterion.null(criterion.escape('x'), false);
 ```
 
 ### boolean operations
@@ -639,8 +639,8 @@ or functional:
 
 ``` js
 var c = criterion.and(
-  criterion.eq(criterion.escaped('x'), 7),
-  criterion.eq(criterion.escaped('y'), 'a')
+  criterion.eq(criterion.escape('x'), 7),
+  criterion.eq(criterion.escape('y'), 'a')
 );
 ```
 
@@ -672,8 +672,8 @@ or functional:
 
 ``` js
 var c = criterion.or(
-  criterion.eq(criterion.escaped('x'), 7),
-  criterion.eq(criterion.escaped('y'), 6)
+  criterion.eq(criterion.escape('x'), 7),
+  criterion.eq(criterion.escape('y'), 6)
 );
 ```
 
@@ -700,8 +700,8 @@ or functional:
 ``` js
 var c = criterion.not(
   criterion.and(
-    criterion.eq(criterion.escaped('x'), 3),
-    criterion.eq(criterion.escaped('y'), 4)
+    criterion.eq(criterion.escape('x'), 3),
+    criterion.eq(criterion.escape('y'), 4)
   )
 );
 ```
@@ -739,7 +739,7 @@ var c = criterion('x IN (?)', [1, 2, 3]);
 or functional:
 
 ``` js
-var c = criterion.in(criterion.escaped('x'), [1, 2, 3]);
+var c = criterion.in(criterion.escape('x'), [1, 2, 3]);
 ```
 
 #### not in list
@@ -763,7 +763,7 @@ var c = criterion('x NOT IN (?)', [1, 2, 3]);
 or functional:
 
 ``` js
-var c = criterion.nin(criterion.escaped('x'), [1, 2, 3]);
+var c = criterion.nin(criterion.escape('x'), [1, 2, 3]);
 ```
 
 ### subqueries
@@ -798,7 +798,7 @@ c.params();
 or functional:
 
 ``` js
-var c = criterion.in(criterion.escaped('x'), subquery);
+var c = criterion.in(criterion.escape('x'), subquery);
 ```
 
 #### not in subquery
@@ -822,7 +822,7 @@ c.params();
 or functional:
 
 ``` js
-var c = criterion.nin(criterion.escaped('x'), subquery);
+var c = criterion.nin(criterion.escape('x'), subquery);
 ```
 
 #### subquery returns any rows
@@ -867,7 +867,7 @@ c.params();
 or functional:
 
 ``` js
-var c = criterion.any(criterion.escaped('x'), subquery);
+var c = criterion.any(criterion.escape('x'), subquery);
 ```
 
 criterion supports
@@ -1020,11 +1020,14 @@ c.params();
 
 ## TODO
 
-- a functional interface through the factories directly
-  - `c.and()`
-  - `c.eq()`
-  - often the left side of an operation is just a column or a table qualified column
+- test dsl
+- document dsl
+- read through the code again
+- often the left side of an operation is just a column or a table qualified column
 - atoms are treated as values
 - dontWrap
   - says how outer fragments should handle this fragment
   - things are only wrapped when inside of something
+- finish the readme
+- test left operands
+  - reverse operands
