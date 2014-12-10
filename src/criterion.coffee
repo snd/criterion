@@ -469,7 +469,7 @@ criterion = (firstArg, restArgs...) ->
 
 module.exports = criterion
 
-# make the dsl available
+# make the dsl public
 for key, value of dsl
   do (key, value) ->
     criterion[key] = value
