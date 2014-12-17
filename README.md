@@ -34,7 +34,8 @@ easily build up and manipulated with code.
   - [raw-sql (`var c = criterion('LOG(y, ?)', 5);`)](#raw-sql)
   - [the sql-fragment interface](#the-sql-fragment-interface)
 - [for users of mesa and mohair](#for-users-of-mesa-and-mohair)
-- [condition-object reference by example](#condition-object-reference-by-example)
+- [reference by example](#reference-by-example)
+  - [how to read this reference](#how-to-read-this-reference)
   - [comparisons](#comparisons)
     - [equal (`{x: 1}` -> `x = ?`)](#equal)
     - [not equal (`{x: {$ne: 1}}` -> `x != ?`)](#not-equal)
@@ -437,7 +438,11 @@ refines
 
 this is one of the nice properties of mohair and mesa.
 
-## condition-object reference by example
+## reference by example
+
+### how to read this reference
+
+
 
 *for each section several examples are given and seperated by "or".
 the criteria created in the examples behave identical.
