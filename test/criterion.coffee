@@ -6,684 +6,667 @@ module.exports =
 
   'successfully making criteria':
 
-    'comparisons':
+    'x = 7': (test) ->
+      SQL = 'x = ?'
+      ESCAPED = '"x" = ?'
+      PARAMS = [7]
 
-      '=': (test) ->
-        SQL = 'x = ?'
-        ESCAPED = '"x" = ?'
-        PARAMS = [7]
+      lang1 = criterion {x: 7}
+      lang2 = criterion {x: {$eq: 7}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.eq(C.escape('x'), 7)
+      dslReversed = C.eq(7, C.escape('x'))
 
-        lang = criterion {x: 7}
-        raw = criterion SQL, PARAMS...
-        dsl = C.eq(C.escape('x'), 7)
+      test.equal lang1.sql(), SQL
+      test.equal lang1.sql(escape), ESCAPED
+      test.deepEqual lang1.params(), PARAMS
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      test.equal lang2.sql(), SQL
+      test.equal lang2.sql(escape), ESCAPED
+      test.deepEqual lang2.params(), PARAMS
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        test.done()
+      test.equal dslReversed.sql(), '? = x'
 
-      '!=': (test) ->
-        SQL = 'x != ?'
-        ESCAPED = '"x" != ?'
-        PARAMS = ['a']
+      test.done()
 
-        lang = criterion {x: {$ne: 'a'}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.ne(C.escape('x'), 'a')
+    '!=': (test) ->
+      SQL = 'x != ?'
+      ESCAPED = '"x" != ?'
+      PARAMS = ['a']
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      lang = criterion {x: {$ne: 'a'}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.ne(C.escape('x'), 'a')
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.done()
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-      '< AND <=': (test) ->
-        SQL = '(x < ?) AND (y <= ?)'
-        ESCAPED = '("x" < ?) AND ("y" <= ?)'
-        PARAMS = [3, 4]
+      test.done()
 
-        lang = criterion {x: {$lt: 3}, y: {$lte: 4}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.and(
-          C.lt(C.escape('x'), 3)
-          C.lte(C.escape('y'), 4)
-        )
+    '< AND <=': (test) ->
+      SQL = '(x < ?) AND (y <= ?)'
+      ESCAPED = '("x" < ?) AND ("y" <= ?)'
+      PARAMS = [3, 4]
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      lang = criterion {x: {$lt: 3}, y: {$lte: 4}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.and(
+        C.lt(C.escape('x'), 3)
+        C.lte(C.escape('y'), 4)
+      )
+      combined = criterion(x: {$lt: 3})
+        .and(y: {$lte: 4})
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.done()
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-      '> AND >=': (test) ->
-        SQL = '(x > ?) AND (y >= ?)'
-        ESCAPED = '("x" > ?) AND ("y" >= ?)'
-        PARAMS = [5, 6]
+      test.equal combined.sql(), SQL
+      test.equal combined.sql(escape), ESCAPED
+      test.deepEqual combined.params(), PARAMS
 
-        lang = criterion {x: {$gt: 5}, y: {$gte: 6}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.and(
-          C.gt(C.escape('x'), 5)
-          C.gte(C.escape('y'), 6)
-        )
+      test.done()
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+    '> AND >=': (test) ->
+      SQL = '(x > ?) AND (y >= ?)'
+      ESCAPED = '("x" > ?) AND ("y" >= ?)'
+      PARAMS = [5, 6]
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      lang = criterion {x: {$gt: 5}, y: {$gte: 6}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.and(
+        C.gt(C.escape('x'), 5)
+        C.gte(C.escape('y'), 6)
+      )
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.done()
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-      'NULL': (test) ->
-        SQL = 'x IS NULL'
-        ESCAPED = '"x" IS NULL'
-        PARAMS = []
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        lang = criterion {x: {$null: true}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.null(C.escape('x'))
+      test.done()
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+    'x IS NULL': (test) ->
+      SQL = 'x IS NULL'
+      ESCAPED = '"x" IS NULL'
+      PARAMS = []
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      lang = criterion {x: {$null: true}}
+      raw = criterion SQL
+      dsl = C.null(C.escape('x'))
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.done()
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-      'NOT NULL': (test) ->
-        SQL = 'x IS NOT NULL'
-        ESCAPED = '"x" IS NOT NULL'
-        PARAMS = []
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        lang = criterion {x: {$null: false}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.null(C.escape('x'), false)
+      test.done()
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+    'x IS NOT NULL': (test) ->
+      SQL = 'x IS NOT NULL'
+      ESCAPED = '"x" IS NOT NULL'
+      PARAMS = []
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      lang = criterion {x: {$null: false}}
+      raw = criterion SQL
+      dsl = C.null(C.escape('x'), false)
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.done()
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-    'arrays or scalar expressions':
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-      'IN': (test) ->
-        SQL = 'x IN (?, ?, ?)'
-        ESCAPED = '"x" IN (?, ?, ?)'
-        PARAMS = [1, 2, 3]
+      test.done()
 
-        lang = criterion {x: [1, 2, 3]}
-        langLong = criterion {x: {$in: [1, 2, 3]}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.in(C.escape('x'), [1, 2, 3])
+    'x IN (?, ?, ?)': (test) ->
+      SQL = 'x IN (?, ?, ?)'
+      ESCAPED = '"x" IN (?, ?, ?)'
+      PARAMS = [1, 2, 3]
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      lang = criterion {x: [1, 2, 3]}
+      langLong = criterion {x: {$in: [1, 2, 3]}}
+      raw1 = criterion SQL, 1, 2, 3
+      raw2 = criterion 'x IN (?)', [1, 2, 3]
+      dsl = C.in(C.escape('x'), [1, 2, 3])
 
-        test.equal langLong.sql(), SQL
-        test.equal langLong.sql(escape), ESCAPED
-        test.deepEqual langLong.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal langLong.sql(), SQL
+      test.equal langLong.sql(escape), ESCAPED
+      test.deepEqual langLong.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal raw1.sql(), SQL
+      test.equal raw1.sql(escape), SQL
+      test.deepEqual raw1.params(), PARAMS
 
-        test.done()
+      test.equal raw2.sql(), SQL
+      test.equal raw2.sql(escape), SQL
+      test.deepEqual raw2.params(), PARAMS
 
-      'NOT IN': (test) ->
-        SQL = 'x NOT IN (?, ?, ?)'
-        ESCAPED = '"x" NOT IN (?, ?, ?)'
-        PARAMS = [1, 2, 3]
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        lang = criterion {x: {$nin: [1, 2, 3]}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.nin(C.escape('x'), [1, 2, 3])
+      test.done()
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+    'NOT IN': (test) ->
+      SQL = 'x NOT IN (?, ?, ?)'
+      ESCAPED = '"x" NOT IN (?, ?, ?)'
+      PARAMS = [1, 2, 3]
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      lang = criterion {x: {$nin: [1, 2, 3]}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.nin(C.escape('x'), [1, 2, 3])
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.done()
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-    'boolean operations':
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-      'AND': (test) ->
-        SQL = '(x = ?) AND (y = ?) AND (z = ?) AND a = ?'
-        ESCAPED = '("x" = ?) AND ("y" = ?) AND ("z" = ?) AND a = ?'
-        PARAMS = [7, 'foo', 2.5, 6]
+      test.done()
 
-        lang1 = criterion {x: 7, y: 'foo'}, {z: 2.5}, [criterion('a = ?', 6)]
-        lang2 = criterion [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]
-        lang3 = criterion {$and: [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
-        lang4 = criterion {x: 7, y: 'foo', $and: [{z: 2.5}, criterion('a = ?', 6)]}
-        raw = criterion SQL, PARAMS...
-        dsl1 = C.and(
-          C.eq(C.escape('x'), 7)
-          C.eq(C.escape('y'), 'foo')
+    'AND': (test) ->
+      SQL = '(x = ?) AND (y = ?) AND (z = ?) AND a = ?'
+      ESCAPED = '("x" = ?) AND ("y" = ?) AND ("z" = ?) AND a = ?'
+      PARAMS = [7, 'foo', 2.5, 6]
+
+      lang1 = criterion {x: 7, y: 'foo'}, {z: 2.5}, [criterion('a = ?', 6)]
+      lang2 = criterion [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]
+      lang3 = criterion {$and: [{x: 7, y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
+      lang4 = criterion {x: 7, y: 'foo', $and: [{z: 2.5}, criterion('a = ?', 6)]}
+      raw = criterion SQL, PARAMS...
+      dsl1 = C.and(
+        C.eq(C.escape('x'), 7)
+        C.eq(C.escape('y'), 'foo')
+        C.eq(C.escape('z'), 2.5)
+        C('a = ?', 6)
+      )
+      dsl2 = C.and(
+        C.eq(C.escape('x'), 7)
+        C.eq(C.escape('y'), 'foo')
+        C.and(
           C.eq(C.escape('z'), 2.5)
           C('a = ?', 6)
         )
-        dsl2 = C.and(
-          C.eq(C.escape('x'), 7)
-          C.eq(C.escape('y'), 'foo')
-          C.and(
-            C.eq(C.escape('z'), 2.5)
-            C('a = ?', 6)
-          )
-        )
-        dsl3 = C(
-          C.eq(C.escape('x'), 7)
-          C.eq(C.escape('y'), 'foo')
-          C(
-            C.eq(C.escape('z'), 2.5)
-            C('a = ?', 6)
-          )
-        )
-
-        test.equal lang1.sql(), SQL
-        test.equal lang1.sql(escape), ESCAPED
-        test.deepEqual lang1.params(), PARAMS
-
-        test.equal lang2.sql(), SQL
-        test.equal lang2.sql(escape), ESCAPED
-        test.deepEqual lang2.params(), PARAMS
-
-        test.equal lang3.sql(), SQL
-        test.equal lang3.sql(escape), ESCAPED
-        test.deepEqual lang3.params(), PARAMS
-
-        test.equal lang4.sql(), SQL
-        test.equal lang4.sql(escape), ESCAPED
-        test.deepEqual lang4.params(), PARAMS
-
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
-
-        test.equal dsl1.sql(), SQL
-        test.equal dsl1.sql(escape), ESCAPED
-        test.deepEqual dsl1.params(), PARAMS
-
-        test.equal dsl2.sql(), SQL
-        test.equal dsl2.sql(escape), ESCAPED
-        test.deepEqual dsl2.params(), PARAMS
-
-        test.equal dsl3.sql(), SQL
-        test.equal dsl3.sql(escape), ESCAPED
-        test.deepEqual dsl3.params(), PARAMS
-
-        test.done()
-
-      'OR': (test) ->
-        SQL = '(x = ?) OR (y = ?) OR (z = ?) OR a = ?'
-        ESCAPED = '("x" = ?) OR ("y" = ?) OR ("z" = ?) OR a = ?'
-        PARAMS = [7, 'foo', 2.5, 6]
-
-        lang1 = criterion {$or: [{x: 7}, {y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
-        lang2 = criterion {$or: {x: 7, y: 'foo', $or: [{z: 2.5}, criterion('a = ?', 6)]}}
-        raw = criterion SQL, PARAMS...
-        dsl1 = C.or(
-          C.eq(C.escape('x'), 7)
-          C.eq(C.escape('y'), 'foo')
+      )
+      dsl3 = C(
+        C.eq(C.escape('x'), 7)
+        C.eq(C.escape('y'), 'foo')
+        C(
           C.eq(C.escape('z'), 2.5)
           C('a = ?', 6)
         )
-        dsl2 = C.or(
-          C.eq(C.escape('x'), 7)
-          C.eq(C.escape('y'), 'foo')
-          C.or(
-            C.eq(C.escape('z'), 2.5)
-            C('a = ?', 6)
-          )
+      )
+
+      test.equal lang1.sql(), SQL
+      test.equal lang1.sql(escape), ESCAPED
+      test.deepEqual lang1.params(), PARAMS
+
+      test.equal lang2.sql(), SQL
+      test.equal lang2.sql(escape), ESCAPED
+      test.deepEqual lang2.params(), PARAMS
+
+      test.equal lang3.sql(), SQL
+      test.equal lang3.sql(escape), ESCAPED
+      test.deepEqual lang3.params(), PARAMS
+
+      test.equal lang4.sql(), SQL
+      test.equal lang4.sql(escape), ESCAPED
+      test.deepEqual lang4.params(), PARAMS
+
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
+
+      test.equal dsl1.sql(), SQL
+      test.equal dsl1.sql(escape), ESCAPED
+      test.deepEqual dsl1.params(), PARAMS
+
+      test.equal dsl2.sql(), SQL
+      test.equal dsl2.sql(escape), ESCAPED
+      test.deepEqual dsl2.params(), PARAMS
+
+      test.equal dsl3.sql(), SQL
+      test.equal dsl3.sql(escape), ESCAPED
+      test.deepEqual dsl3.params(), PARAMS
+
+      test.done()
+
+    'OR': (test) ->
+      SQL = '(x = ?) OR (y = ?) OR (z = ?) OR a = ?'
+      ESCAPED = '("x" = ?) OR ("y" = ?) OR ("z" = ?) OR a = ?'
+      PARAMS = [7, 'foo', 2.5, 6]
+
+      lang1 = criterion {$or: [{x: 7}, {y: 'foo'}, {z: 2.5}, criterion('a = ?', 6)]}
+      lang2 = criterion {$or: {x: 7, y: 'foo', $or: [{z: 2.5}, criterion('a = ?', 6)]}}
+      raw = criterion SQL, PARAMS...
+      dsl1 = C.or(
+        C.eq(C.escape('x'), 7)
+        C.eq(C.escape('y'), 'foo')
+        C.eq(C.escape('z'), 2.5)
+        C('a = ?', 6)
+      )
+      dsl2 = C.or(
+        C.eq(C.escape('x'), 7)
+        C.eq(C.escape('y'), 'foo')
+        C.or(
+          C.eq(C.escape('z'), 2.5)
+          C('a = ?', 6)
         )
+      )
 
-        test.equal lang1.sql(), SQL
-        test.equal lang1.sql(escape), ESCAPED
-        test.deepEqual lang1.params(), PARAMS
+      test.equal lang1.sql(), SQL
+      test.equal lang1.sql(escape), ESCAPED
+      test.deepEqual lang1.params(), PARAMS
 
-        test.equal lang2.sql(), SQL
-        test.equal lang2.sql(escape), ESCAPED
-        test.deepEqual lang2.params(), PARAMS
+      test.equal lang2.sql(), SQL
+      test.equal lang2.sql(escape), ESCAPED
+      test.deepEqual lang2.params(), PARAMS
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.equal dsl1.sql(), SQL
-        test.equal dsl1.sql(escape), ESCAPED
-        test.deepEqual dsl1.params(), PARAMS
+      test.equal dsl1.sql(), SQL
+      test.equal dsl1.sql(escape), ESCAPED
+      test.deepEqual dsl1.params(), PARAMS
 
-        test.equal dsl2.sql(), SQL
-        test.equal dsl2.sql(escape), ESCAPED
-        test.deepEqual dsl2.params(), PARAMS
+      test.equal dsl2.sql(), SQL
+      test.equal dsl2.sql(escape), ESCAPED
+      test.deepEqual dsl2.params(), PARAMS
 
-        test.done()
+      test.done()
 
-      'NOT': (test) ->
-        SQL = 'NOT ((x > ?) AND (y >= ?))'
-        ESCAPED = 'NOT (("x" > ?) AND ("y" >= ?))'
-        PARAMS = [3, 4]
+    'NOT': (test) ->
+      SQL = 'NOT ((x > ?) AND (y >= ?))'
+      ESCAPED = 'NOT (("x" > ?) AND ("y" >= ?))'
+      PARAMS = [3, 4]
 
-        lang = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
-        raw = criterion SQL, PARAMS...
-        dsl = C.not(
-          C.and(
-            C.gt(C.escape('x'), 3)
-            C.gte(C.escape('y'), 4)
-          )
+      lang = criterion {$not: {x: {$gt: 3}, y: {$gte: 4}}}
+      raw = criterion SQL, PARAMS...
+      dsl = C.not(
+        C.and(
+          C.gt(C.escape('x'), 3)
+          C.gte(C.escape('y'), 4)
         )
+      )
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        test.done()
+      test.done()
 
-      'OR inside AND (is wrapped in parentheses)': (test) ->
-        SQL = '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
-        ESCAPED = '("username" = ?) AND ("password" = ?) AND (("active" = ?) OR ("active" IS NULL))'
-        PARAMS = ['user', 'hash', 1]
+    'OR inside AND (is wrapped in parentheses)': (test) ->
+      SQL = '(username = ?) AND (password = ?) AND ((active = ?) OR (active IS NULL))'
+      ESCAPED = '("username" = ?) AND ("password" = ?) AND (("active" = ?) OR ("active" IS NULL))'
+      PARAMS = ['user', 'hash', 1]
 
-        lang = criterion
-          username: 'user'
-          password: 'hash'
-          $or: [{active: 1}, {active: {$null: true}}]
-        raw = criterion SQL, PARAMS...
-        dsl = C.and(
-          C.eq(C.escape('username'), 'user')
-          C.eq(C.escape('password'), 'hash')
-          C.or(
-            C.eq(C.escape('active'), 1)
-            C.null(C.escape('active'))
-          )
+      lang = criterion
+        username: 'user'
+        password: 'hash'
+        $or: [{active: 1}, {active: {$null: true}}]
+      raw = criterion SQL, PARAMS...
+      dsl = C.and(
+        C.eq(C.escape('username'), 'user')
+        C.eq(C.escape('password'), 'hash')
+        C.or(
+          C.eq(C.escape('active'), 1)
+          C.null(C.escape('active'))
         )
+      )
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
 
-        test.done()
+      test.done()
 
-      'AND, OR and NOT can be deeply nested': (test) ->
-        SQL = '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR ((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?) OR (NOT (alpha = ? OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
-        ESCAPED = '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR (("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?) OR (NOT (alpha = ? OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
-        PARAMS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    'AND, OR and NOT can be deeply nested': (test) ->
+      SQL = '(alpha = ?) OR ((charlie != ?) AND (NOT (((delta = ?) OR (delta IS NULL)) AND (echo = ?)))) OR ((echo < ?) AND ((golf = ?) OR (NOT (lima != ?)))) OR (foxtrot = ?) OR (NOT (alpha = ? OR (NOT (echo < ?)) OR (alpha < ?) OR (bravo = ?) OR ((alpha = ?) AND (bravo = ?)))) OR (bravo = ?)'
+      ESCAPED = '("alpha" = ?) OR (("charlie" != ?) AND (NOT ((("delta" = ?) OR ("delta" IS NULL)) AND ("echo" = ?)))) OR (("echo" < ?) AND (("golf" = ?) OR (NOT ("lima" != ?)))) OR ("foxtrot" = ?) OR (NOT (alpha = ? OR (NOT ("echo" < ?)) OR ("alpha" < ?) OR ("bravo" = ?) OR (("alpha" = ?) AND ("bravo" = ?)))) OR ("bravo" = ?)'
+      PARAMS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
-        lang = criterion {
-          $or: {
-            alpha: 1
-            $and: {
-              charlie: {$ne: 2}
-              $not: {
-                $and: {
-                  $or: [
-                    {delta: 3},
-                    {delta: {$null: true}}
-                  ]
-                  echo: 4
-                }
+      lang = criterion {
+        $or: {
+          alpha: 1
+          $and: {
+            charlie: {$ne: 2}
+            $not: {
+              $and: {
+                $or: [
+                  {delta: 3},
+                  {delta: {$null: true}}
+                ]
+                echo: 4
               }
             }
-            $or: [
-              [
-                {echo: {$lt: 5}}
-                {$or: {
-                  golf: 6
-                  $not: {lima: {$ne: 7}}
-                }}
-              ]
-              {foxtrot: 8}
-            ]
-            $not: {
-              $or: [
-                criterion('alpha = ?', 9)
-                {$not: {echo: {$lt: 10}}}
-                {alpha: {$lt: 11}}
-                {bravo: 12}
-                [
-                  {alpha: 13}
-                  {bravo: 14}
-                ]
-              ]
-            }
-            bravo: 15
           }
+          $or: [
+            [
+              {echo: {$lt: 5}}
+              {$or: {
+                golf: 6
+                $not: {lima: {$ne: 7}}
+              }}
+            ]
+            {foxtrot: 8}
+          ]
+          $not: {
+            $or: [
+              criterion('alpha = ?', 9)
+              {$not: {echo: {$lt: 10}}}
+              {alpha: {$lt: 11}}
+              {bravo: 12}
+              [
+                {alpha: 13}
+                {bravo: 14}
+              ]
+            ]
+          }
+          bravo: 15
         }
-        raw = criterion SQL, PARAMS...
+      }
+      raw = criterion SQL, PARAMS...
 
-        dsl = C.or(
-          C.eq(C.escape('alpha'), 1)
-          C.and(
-            C.ne(C.escape('charlie'), 2)
-            C.not(
-              C.and(
-                C.or(
-                  C.eq(C.escape('delta'), 3)
-                  C.null(C.escape('delta'))
-                )
-                C.eq(C.escape('echo'), 4)
-              )
-            )
-          )
-          C.or(
-            C.and(
-              C.lt(C.escape('echo'), 5)
-              C.or(
-                C.eq(C.escape('golf'), 6)
-                C.not(
-                  C.ne(C.escape('lima'), 7)
-                )
-              )
-            )
-            C.eq(C.escape('foxtrot'), 8)
-          )
+      dsl = C.or(
+        C.eq(C.escape('alpha'), 1)
+        C.and(
+          C.ne(C.escape('charlie'), 2)
           C.not(
-            C.or(
-              C('alpha = ?', 9)
-              C.not(
-                C.lt(C.escape('echo'), 10)
+            C.and(
+              C.or(
+                C.eq(C.escape('delta'), 3)
+                C.null(C.escape('delta'))
               )
-              C.lt(C.escape('alpha'), 11)
-              C.eq(C.escape('bravo'), 12)
-              C(
-                C.eq(C.escape('alpha'), 13)
-                C.eq(C.escape('bravo'), 14)
+              C.eq(C.escape('echo'), 4)
+            )
+          )
+        )
+        C.or(
+          C.and(
+            C.lt(C.escape('echo'), 5)
+            C.or(
+              C.eq(C.escape('golf'), 6)
+              C.not(
+                C.ne(C.escape('lima'), 7)
               )
             )
           )
-          C.eq(C.escape('bravo'), 15)
+          C.eq(C.escape('foxtrot'), 8)
         )
+        C.not(
+          C.or(
+            C('alpha = ?', 9)
+            C.not(
+              C.lt(C.escape('echo'), 10)
+            )
+            C.lt(C.escape('alpha'), 11)
+            C.eq(C.escape('bravo'), 12)
+            C(
+              C.eq(C.escape('alpha'), 13)
+              C.eq(C.escape('bravo'), 14)
+            )
+          )
+        )
+        C.eq(C.escape('bravo'), 15)
+      )
+
+      test.equal lang.sql(), SQL
+      test.equal lang.sql(escape), ESCAPED
+      test.deepEqual lang.params(), PARAMS
+
+      test.equal raw.sql(), SQL
+      test.equal raw.sql(escape), SQL
+      test.deepEqual raw.params(), PARAMS
+
+      test.equal dsl.sql(), SQL
+      test.equal dsl.sql(escape), ESCAPED
+      test.deepEqual dsl.params(), PARAMS
+
+      test.done()
+
+    'IN and $nin': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
+        params: -> []
+
+      subqueryWithParams =
+        sql: (escape) ->
+          "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'} = ?"
+        params: ->
+          [true]
+
+      inWithoutParams = criterion {x: {$in: subquery}}
+
+      test.equal inWithoutParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active)'
+      test.equal inWithoutParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active")'
+      test.deepEqual inWithoutParams.params(), []
+
+      inWithParams = criterion {x: {$in: subqueryWithParams}}
+
+      test.equal inWithParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active = ?)'
+      test.equal inWithParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
+      test.deepEqual inWithParams.params(), [true]
+
+      ninWithoutParams = criterion {x: {$nin: subquery}}
+
+      test.equal ninWithoutParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active)'
+      test.equal ninWithoutParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active")'
+      test.deepEqual ninWithoutParams.params(), []
+
+      ninWithParams = criterion {x: {$nin: subqueryWithParams}}
+
+      test.equal ninWithParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active = ?)'
+      test.equal ninWithParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
+      test.deepEqual ninWithParams.params(), [true]
+
+      test.done()
 
-        test.equal lang.sql(), SQL
-        test.equal lang.sql(escape), ESCAPED
-        test.deepEqual lang.params(), PARAMS
+    '$exists': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
+        params: -> []
+      subqueryWithParams =
+        sql: (escape) ->
+          "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
+        params: ->
+          [true]
 
-        test.equal raw.sql(), SQL
-        test.equal raw.sql(escape), SQL
-        test.deepEqual raw.params(), PARAMS
+      existsWithoutParams = criterion {id: 7, $exists: subquery}
 
-        test.equal dsl.sql(), SQL
-        test.equal dsl.sql(escape), ESCAPED
-        test.deepEqual dsl.params(), PARAMS
+      test.equal existsWithoutParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active))'
+      test.equal existsWithoutParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active"))'
+      test.deepEqual existsWithoutParams.params(), [7]
 
-        test.done()
+      existsWithParams = criterion {id: 7, $exists: subqueryWithParams}
 
-    'subqueries':
+      test.equal existsWithParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active = ?))'
+      test.equal existsWithParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active" = ?))'
+      test.deepEqual existsWithParams.params(), [7, true]
 
-      'IN and $nin': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'}"
-          params: -> []
+      test.done()
 
-        subqueryWithParams =
-          sql: (escape) ->
-            "SELECT #{escape 'id'} FROM \"user\" WHERE #{escape 'is_active'} = ?"
-          params: ->
-            [true]
+    '$any, $neAny, $ltAny, $lteAny, $gtAny, $gteAny, $all, $neAll, $ltAll, $lteAll, $gtAll, $gteAll': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT * FROM #{escape "user"}"
+        params: -> []
 
-        inWithoutParams = criterion {x: {$in: subquery}}
+      subqueryWithParams =
+        sql: (escape) ->
+          "SELECT * FROM #{escape "user"} WHERE #{escape "id"} = ?"
+        params: ->
+          [7]
 
-        test.equal inWithoutParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active)'
-        test.equal inWithoutParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active")'
-        test.deepEqual inWithoutParams.params(), []
+      anyWithoutParams = criterion {x: {$any: subquery}}
 
-        inWithParams = criterion {x: {$in: subqueryWithParams}}
+      test.equal anyWithoutParams.sql(), 'x = ANY (SELECT * FROM user)'
+      test.equal anyWithoutParams.sql(escape), '"x" = ANY (SELECT * FROM "user")'
+      test.deepEqual anyWithoutParams.params(), []
 
-        test.equal inWithParams.sql(), 'x IN (SELECT id FROM "user" WHERE is_active = ?)'
-        test.equal inWithParams.sql(escape), '"x" IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
-        test.deepEqual inWithParams.params(), [true]
+      anyWithParams = criterion {x: {$any: subqueryWithParams}, y: 6}
 
-        ninWithoutParams = criterion {x: {$nin: subquery}}
+      test.equal anyWithParams.sql(), '(x = ANY (SELECT * FROM user WHERE id = ?)) AND (y = ?)'
+      test.equal anyWithParams.sql(escape), '("x" = ANY (SELECT * FROM "user" WHERE "id" = ?)) AND ("y" = ?)'
+      test.deepEqual anyWithParams.params(), [7, 6]
 
-        test.equal ninWithoutParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active)'
-        test.equal ninWithoutParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active")'
-        test.deepEqual ninWithoutParams.params(), []
+      # since all other subqueries follow the same code path
+      # we omit testing with params and escaping for them
 
-        ninWithParams = criterion {x: {$nin: subqueryWithParams}}
+      test.equal criterion({x: {$neAny: subquery}}).sql(), 'x != ANY (SELECT * FROM user)'
+      test.equal criterion({x: {$ltAny: subquery}}).sql(), 'x < ANY (SELECT * FROM user)'
+      test.equal criterion({x: {$lteAny: subquery}}).sql(), 'x <= ANY (SELECT * FROM user)'
+      test.equal criterion({x: {$gtAny: subquery}}).sql(), 'x > ANY (SELECT * FROM user)'
+      test.equal criterion({x: {$gteAny: subquery}}).sql(), 'x >= ANY (SELECT * FROM user)'
 
-        test.equal ninWithParams.sql(), 'x NOT IN (SELECT id FROM "user" WHERE is_active = ?)'
-        test.equal ninWithParams.sql(escape), '"x" NOT IN (SELECT "id" FROM "user" WHERE "is_active" = ?)'
-        test.deepEqual ninWithParams.params(), [true]
+      test.equal criterion({x: {$all: subquery}}).sql(), 'x = ALL (SELECT * FROM user)'
+      test.equal criterion({x: {$neAll: subquery}}).sql(), 'x != ALL (SELECT * FROM user)'
+      test.equal criterion({x: {$ltAll: subquery}}).sql(), 'x < ALL (SELECT * FROM user)'
+      test.equal criterion({x: {$lteAll: subquery}}).sql(), 'x <= ALL (SELECT * FROM user)'
+      test.equal criterion({x: {$gtAll: subquery}}).sql(), 'x > ALL (SELECT * FROM user)'
+      test.equal criterion({x: {$gteAll: subquery}}).sql(), 'x >= ALL (SELECT * FROM user)'
 
-        test.done()
+      test.done()
 
-      '$exists': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT * FROM \"user\" WHERE #{escape 'is_active'}"
-          params: -> []
-        subqueryWithParams =
-          sql: (escape) ->
-            "SELECT * FROM \"user\" WHERE #{escape 'is_active'} = ?"
-          params: ->
-            [true]
+    'row-wise comparison': (test) ->
+      subquery =
+        sql: (escape) ->
+          "SELECT #{escape 'created_at'} FROM #{escape 'message'} WHERE #{escape 'id'} = ?"
+        params: ->
+          [1]
 
-        existsWithoutParams = criterion {id: 7, $exists: subquery}
+      c = criterion {is_active: true, created_at: {$lte: subquery}}
 
-        test.equal existsWithoutParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active))'
-        test.equal existsWithoutParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active"))'
-        test.deepEqual existsWithoutParams.params(), [7]
+      test.equal c.sql(), '(is_active = ?) AND (created_at <= (SELECT created_at FROM message WHERE id = ?))'
+      test.equal c.sql(escape), '("is_active" = ?) AND ("created_at" <= (SELECT "created_at" FROM "message" WHERE "id" = ?))'
+      test.deepEqual c.params(), [true, 1]
 
-        existsWithParams = criterion {id: 7, $exists: subqueryWithParams}
+      test.done()
 
-        test.equal existsWithParams.sql(), '(id = ?) AND (EXISTS (SELECT * FROM "user" WHERE is_active = ?))'
-        test.equal existsWithParams.sql(escape), '("id" = ?) AND (EXISTS (SELECT * FROM "user" WHERE "is_active" = ?))'
-        test.deepEqual existsWithParams.params(), [7, true]
+    'with one param and one array': (test) ->
+      c = criterion 'x = ? AND y IN (?)', 7, [8,9,10]
 
-        test.done()
+      test.equal c.sql(), 'x = ? AND y IN (?, ?, ?)'
+      test.deepEqual c.params(), [7, 8, 9, 10]
 
-      '$any, $neAny, $ltAny, $lteAny, $gtAny, $gteAny, $all, $neAll, $ltAll, $lteAll, $gtAll, $gteAll': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT * FROM #{escape "user"}"
-          params: -> []
+      test.done()
 
-        subqueryWithParams =
-          sql: (escape) ->
-            "SELECT * FROM #{escape "user"} WHERE #{escape "id"} = ?"
-          params: ->
-            [7]
+    'with two params and array': (test) ->
+      c = criterion 'x = ? AND y = ? AND z IN (?)', 7, 8, [9,10,11]
 
-        anyWithoutParams = criterion {x: {$any: subquery}}
+      test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?)'
+      test.deepEqual c.params(), [7, 8, 9, 10, 11]
 
-        test.equal anyWithoutParams.sql(), 'x = ANY (SELECT * FROM user)'
-        test.equal anyWithoutParams.sql(escape), '"x" = ANY (SELECT * FROM "user")'
-        test.deepEqual anyWithoutParams.params(), []
+      test.done()
 
-        anyWithParams = criterion {x: {$any: subqueryWithParams}, y: 6}
+    'with two params and two arrays': (test) ->
+      c = criterion 'x = ? AND y = ? AND z IN (?) AND (a && ARRAY[?])', 7, 8, [9,10,11], [12,13,14]
 
-        test.equal anyWithParams.sql(), '(x = ANY (SELECT * FROM user WHERE id = ?)) AND (y = ?)'
-        test.equal anyWithParams.sql(escape), '("x" = ANY (SELECT * FROM "user" WHERE "id" = ?)) AND ("y" = ?)'
-        test.deepEqual anyWithParams.params(), [7, 6]
+      test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?) AND (a && ARRAY[?, ?, ?])'
+      test.deepEqual c.params(), [7, 8, 9, 10, 11, 12, 13, 14]
 
-        # since all other subqueries follow the same code path
-        # we omit testing with params and escaping for them
+      test.done()
 
-        test.equal criterion({x: {$neAny: subquery}}).sql(), 'x != ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$ltAny: subquery}}).sql(), 'x < ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$lteAny: subquery}}).sql(), 'x <= ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$gtAny: subquery}}).sql(), 'x > ANY (SELECT * FROM user)'
-        test.equal criterion({x: {$gteAny: subquery}}).sql(), 'x >= ANY (SELECT * FROM user)'
+    'equality with criterion argument': (test) ->
+      c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
 
-        test.equal criterion({x: {$all: subquery}}).sql(), 'x = ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$neAll: subquery}}).sql(), 'x != ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$ltAll: subquery}}).sql(), 'x < ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$lteAll: subquery}}).sql(), 'x <= ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$gtAll: subquery}}).sql(), 'x > ALL (SELECT * FROM user)'
-        test.equal criterion({x: {$gteAll: subquery}}).sql(), 'x >= ALL (SELECT * FROM user)'
+      test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(escape), '"x" = crypt(?, gen_salt(?, ?))'
+      test.deepEqual c.params(), ['password', 'bf', 4]
 
-        test.done()
+      test.done()
 
-      'row-wise comparison': (test) ->
-        subquery =
-          sql: (escape) ->
-            "SELECT #{escape 'created_at'} FROM #{escape 'message'} WHERE #{escape 'id'} = ?"
-          params: ->
-            [1]
+    '$ne with criterion argument': (test) ->
+      c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
 
-        c = criterion {is_active: true, created_at: {$lte: subquery}}
+      test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
+      test.equal c.sql(escape), '"x" != crypt(?, gen_salt(?, ?))'
+      test.deepEqual c.params(), ['password', 'bf', 4]
 
-        test.equal c.sql(), '(is_active = ?) AND (created_at <= (SELECT created_at FROM message WHERE id = ?))'
-        test.equal c.sql(escape), '("is_active" = ?) AND ("created_at" <= (SELECT "created_at" FROM "message" WHERE "id" = ?))'
-        test.deepEqual c.params(), [true, 1]
+      test.done()
 
-        test.done()
+    '$lt with criterion argument': (test) ->
+      c = criterion {x: {$lt: criterion('NOW()')}}
 
-    'from sql-fragments':
+      test.equal c.sql(), 'x < NOW()'
+      test.equal c.sql(escape), '"x" < NOW()'
+      test.deepEqual c.params(), []
 
-      'without params': (test) ->
-        c = criterion 'x IS NULL'
-
-        test.equal c.sql(), 'x IS NULL'
-        test.deepEqual c.params(), []
-
-        test.done()
-
-      'with one param': (test) ->
-        c = criterion 'x = ?', 7
-
-        test.equal c.sql(), 'x = ?'
-        test.deepEqual c.params(), [7]
-
-        test.done()
-
-      'with two params': (test) ->
-        c = criterion 'x = ? AND y = ?', 7, 8
-
-        test.equal c.sql(), 'x = ? AND y = ?'
-        test.deepEqual c.params(), [7, 8]
-
-        test.done()
-
-      'with one param and one array': (test) ->
-        c = criterion 'x = ? AND y IN (?)', 7, [8,9,10]
-
-        test.equal c.sql(), 'x = ? AND y IN (?, ?, ?)'
-        test.deepEqual c.params(), [7, 8, 9, 10]
-
-        test.done()
-
-      'with two params and array': (test) ->
-        c = criterion 'x = ? AND y = ? AND z IN (?)', 7, 8, [9,10,11]
-
-        test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?)'
-        test.deepEqual c.params(), [7, 8, 9, 10, 11]
-
-        test.done()
-
-      'with two params and two arrays': (test) ->
-        c = criterion 'x = ? AND y = ? AND z IN (?) AND (a && ARRAY[?])', 7, 8, [9,10,11], [12,13,14]
-
-        test.equal c.sql(), 'x = ? AND y = ? AND z IN (?, ?, ?) AND (a && ARRAY[?, ?, ?])'
-        test.deepEqual c.params(), [7, 8, 9, 10, 11, 12, 13, 14]
-
-        test.done()
-
-    'from a mix of condition-objects and sql-fragments':
-
-      'equality with criterion argument': (test) ->
-        c = criterion {x: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}
-
-        test.equal c.sql(), 'x = crypt(?, gen_salt(?, ?))'
-        test.equal c.sql(escape), '"x" = crypt(?, gen_salt(?, ?))'
-        test.deepEqual c.params(), ['password', 'bf', 4]
-
-        test.done()
-
-      '$ne with criterion argument': (test) ->
-        c = criterion {x: {$ne: criterion('crypt(?, gen_salt(?, ?))', 'password', 'bf', 4)}}
-
-        test.equal c.sql(), 'x != crypt(?, gen_salt(?, ?))'
-        test.equal c.sql(escape), '"x" != crypt(?, gen_salt(?, ?))'
-        test.deepEqual c.params(), ['password', 'bf', 4]
-
-        test.done()
-
-      '$lt with criterion argument': (test) ->
-        c = criterion {x: {$lt: criterion('NOW()')}}
-
-        test.equal c.sql(), 'x < NOW()'
-        test.equal c.sql(escape), '"x" < NOW()'
-        test.deepEqual c.params(), []
-
-        test.done()
+      test.done()
 
   'successfully manipulating criteria':
 
