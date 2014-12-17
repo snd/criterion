@@ -9,7 +9,7 @@
 **this is the readme for criterion version `0.4.0` - a work in progress.
 release candidate `0.4.0-rc.1` is published to npm:
 the api is stable, the implementation complete, the tests numerous and passing,
-the documentation (this readme) still needs some love.
+the documentation in this readme still needs some love.
 to see the readme for `0.3.3` [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
 to see what has changed in `0.4.0` [click here](#changelog).**
 
