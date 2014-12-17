@@ -1,7 +1,7 @@
 {
   "name": "criterion",
   "version": "0.4.0-rc.1",
-  "description": "criterion parses SQL-where-conditions from a mongodb-like query-language into immutable composable objects which it can then compile to SQL",
+  "description": "criterion allows you to work with (build, combine, reuse, ...) SQL-where-conditions ('x = 5 AND y IS NOT NULL'...) as data (goodbye string-concatenation) and compile them to SQL: it has a succinct mongodb-like query-language, a simple and elegant functional API, is reasily extended just by implementing 2 functions and gets out of your way: you can always drop down to raw-sql",
   "keywords": [
     "sql",
     "condition",

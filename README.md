@@ -4,27 +4,24 @@
 [![Build Status](https://travis-ci.org/snd/criterion.svg?branch=master)](https://travis-ci.org/snd/criterion/branches)
 [![Dependencies](https://david-dm.org/snd/criterion.svg)](https://david-dm.org/snd/criterion)
 
-#### IMPORTANT !
+#### ABOUT THIS VERSION !
 
-**this is the readme for criterion@0.4.0.
-criterion@0.4.0 is a work in progress and not yet published to npm.
-criterion@0.4.0 is not yet used by the newest versions of mesa and mohair.
-it will be used very very soon !
-to see the readme for criterion@0.3.3 which is used by the newest mesa and mohair [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
-to see what has changed in 0.4.0 [click here](#changelog).**
+**this is the readme for criterion version `0.4.0` - a work in progress.
+release candidate `0.4.0-rc.1` is published to npm:
+the api is stable, the implementation complete, the tests numerous and passing,
+the documentation (this readme) still needs some love.
+to see the readme for `0.3.3` [click here](https://github.com/snd/criterion/tree/0808d66443fd72aaece2f3e5134f49d3af0bf72e) !
+to see what has changed in `0.4.0` [click here](#changelog).**
 
-> criterion lifts SQL-where-conditions from strings into the realm of data:
-data has the advantage to be programmatically accessible and formable than strings.
-is a **highly flexible** and powerful, yet simple solution for modelling
-extendable
-easily build up and manipulated with code.
-> be easily
-> can be manipulated and composed.
-> always drop down to raw-sql.
-> SQL-where-conditions as data instead of strings.
-
-> criterion parses SQL-where-conditions from a mongodb-like query-language into
-> composable objects it can compile to SQL
+> criterion allows you to work with (build, combine, reuse, ...) SQL-where-conditions
+> (`x = 5 AND y IS NOT NULL`...) as data
+> (goodbye string-concatenation)
+> and compile them to SQL:
+> it has a *succinct* [mongodb-like query-language](#condition-objects),
+> a *simple* and *elegant* functional API,
+> is [reasily extended](#the-sql-fragment-interface)
+> just by implementing 2 functions
+> and *gets out of your way*: you can always drop down to [raw-sql](#raw-sql).
 
 - [background](#background)
 - [introduction](#get-started)
@@ -1014,7 +1011,7 @@ c.params();
   - ...
 - bugfixes
   - made some (exotic) condition-objects work which didn't work before
-- exported a dsl
+- improved implementation and based everything on a DSL which is also exposed
 - major improvements to
   - code quality
   - tests
