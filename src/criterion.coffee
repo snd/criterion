@@ -1,19 +1,9 @@
+_ = require 'lodash'
+
 ###################################################################################
 # HELPERS
 
 helper = {}
-
-# return a new object which has `proto` as its prototype and
-# all properties in `properties` as its own properties.
-
-helper.beget = beget = (proto, properties) ->
-  object = Object.create proto
-
-  if properties?
-    for key, value of properties
-      do (key, value) -> object[key] = value
-
-  return object
 
 # if `thing` is an array return `thing`
 # otherwise return an array of all key value pairs in `thing` as objects
@@ -105,7 +95,7 @@ prototypes.base =
 ###################################################################################
 # raw sql
 
-prototypes.rawSql = beget prototypes.base,
+prototypes.rawSql = _.create prototypes.base,
   sql: ->
     unless @_params
       return @_sql
@@ -126,12 +116,12 @@ prototypes.rawSql = beget prototypes.base,
   dontWrap: true
 
 rawSql = (sql, params = []) ->
-  beget prototypes.rawSql, {_sql: sql, _params: params}
+  _.create prototypes.rawSql, {_sql: sql, _params: params}
 
 ###################################################################################
 # escape
 
-prototypes.escape = beget prototypes.base,
+prototypes.escape = _.create prototypes.base,
   sql: (escape) ->
     return escape @_sql
   params: ->
@@ -139,12 +129,25 @@ prototypes.escape = beget prototypes.base,
   dontWrap: true
 
 dsl.escape = (sql) ->
-  beget prototypes.escape, {_sql: sql}
+  _.create prototypes.escape, {_sql: sql}
+
+###################################################################################
+# wrap
+
+prototypes.wrap = _.create prototypes.base,
+  sql: (escape) ->
+    return escape @_sql
+  params: ->
+    []
+  dontWrap: false
+
+dsl.wrap = (sql) ->
+  _.create prototypes.wrap, {_sql: sql}
 
 ###################################################################################
 # comparisons: eq, ne, lt, lte, gt, gte
 
-prototypes.comparison = beget prototypes.base,
+prototypes.comparison = _.create prototypes.base,
   sql: (escape = identity) ->
     "#{normalizeSql @_left, escape} #{@_operator} #{normalizeSql @_right, escape}"
   params: ->
@@ -152,7 +155,7 @@ prototypes.comparison = beget prototypes.base,
 
 # for when you need arbitrary comparison operators
 dsl.compare = (operator, left, right) ->
-  beget prototypes.comparison, {_left: left, _right: right, _operator: operator}
+  _.create prototypes.comparison, {_left: left, _right: right, _operator: operator}
 
 # make dsl functions and modifier functions for the most common comparison operators
 comparisonTable = [
@@ -169,7 +172,7 @@ comparisonTable = [
 ###################################################################################
 # null
 
-prototypes.null = beget prototypes.base,
+prototypes.null = _.create prototypes.base,
   sql: (escape = identity) ->
     "#{normalizeSql(@_operand, escape)} IS #{if @_isNull then '' else 'NOT '}NULL"
   params: ->
@@ -178,12 +181,12 @@ prototypes.null = beget prototypes.base,
 dsl.null = modifiers.$null = (operand, isNull = true) ->
   unless operand?
     throw new Error '`null` needs an operand'
-  beget prototypes.null, {_operand: operand, _isNull: isNull}
+  _.create prototypes.null, {_operand: operand, _isNull: isNull}
 
 ###################################################################################
 # negation
 
-prototypes.not = beget prototypes.base,
+prototypes.not = _.create prototypes.base,
   sql: (escape = identity) ->
     # remove double negation
     if isNegation @_inner
@@ -200,12 +203,12 @@ isNegation = (x) ->
 dsl.not = (inner) ->
   unless implementsSqlFragmentInterface inner
     throw new Error '`not`: operand must implement sql-fragment interface'
-  beget prototypes.not, {_inner: inner}
+  _.create prototypes.not, {_inner: inner}
 
 ###################################################################################
 # exists
 
-prototypes.exists = beget prototypes.base,
+prototypes.exists = _.create prototypes.base,
   sql: (escape = identity) ->
     "EXISTS #{normalizeSql(@_operand, escape)}"
   params: ->
@@ -214,12 +217,12 @@ prototypes.exists = beget prototypes.base,
 dsl.exists = (operand) ->
   unless implementsSqlFragmentInterface operand
     throw new Error '`exists` operand must implement sql-fragment interface'
-  beget prototypes.exists, {_operand: operand}
+  _.create prototypes.exists, {_operand: operand}
 
 ###################################################################################
 # subquery expressions: in, nin, any, neAny, ...
 
-prototypes.subquery = beget prototypes.base,
+prototypes.subquery = _.create prototypes.base,
   sql: (escape = identity) ->
     sql = ""
     sql += normalizeSql @_left, escape
@@ -241,7 +244,7 @@ prototypes.subquery = beget prototypes.base,
     return params
 
 dsl.subquery = (operator, left, right) ->
-  beget prototypes.subquery, {_left: left, _right: right, _operator: operator}
+  _.create prototypes.subquery, {_left: left, _right: right, _operator: operator}
 
 # make dsl functions and modifier functions for common subquery operators
 [
@@ -290,7 +293,7 @@ dsl.subquery = (operator, left, right) ->
 isAnd = (x) ->
   prototypes.and.isPrototypeOf x
 
-prototypes.and = beget prototypes.base,
+prototypes.and = _.create prototypes.base,
   sql: (escape = identity) ->
     parts = @_operands.map (x) ->
       # we don't have to wrap ANDs inside an AND
@@ -310,7 +313,7 @@ dsl.and = (args...) ->
   operands.forEach (x) ->
     unless implementsSqlFragmentInterface x
       throw new Error "`and`: all operands must implement sql-fragment interface"
-  beget prototypes.and, {_operands: operands}
+  _.create prototypes.and, {_operands: operands}
 
 ###################################################################################
 # or
@@ -318,7 +321,7 @@ dsl.and = (args...) ->
 isOr = (x) ->
   prototypes.or.isPrototypeOf x
 
-prototypes.or = beget prototypes.base,
+prototypes.or = _.create prototypes.base,
   sql: (escape = identity) ->
     parts = @_operands.map (x) ->
       # we don't have to wrap ORs inside an OR
@@ -338,7 +341,7 @@ dsl.or = (args...) ->
   operands.forEach (x) ->
     unless implementsSqlFragmentInterface x
       throw new Error "`or`: all operands must implement sql-fragment interface"
-  beget prototypes.or, {_operands: operands}
+  _.create prototypes.or, {_operands: operands}
 
 ###################################################################################
 # MAIN FACTORY
