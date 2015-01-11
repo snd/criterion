@@ -46,12 +46,10 @@
     "nodeunit": "0.9.0"
   },
   "scripts": {
-    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "clean": "rm -f src/*.js",
-    "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "pretest": "rm -f src/*.js",
-    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee || :",
-    "posttest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee"
+    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output lib/ src/",
+    "prepublish": "npm run compile",
+    "pretest": "npm run compile",
+    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
   },
-  "main": "src/criterion"
+  "main": "lib/criterion"
 }
