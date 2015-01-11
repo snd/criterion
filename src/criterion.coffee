@@ -22,9 +22,6 @@ helper.explodeObject = explodeObject = (arrayOrObject) ->
 
   return array
 
-helper.identity = identity = (x) ->
-  x
-
 helper.isEmptyArray = isEmptyArray = (x) ->
   Array.isArray(x) and x.length is 0
 
@@ -34,7 +31,7 @@ helper.isEmptyArray = isEmptyArray = (x) ->
 
 helper.some = some = (
   array
-  iterator = identity
+  iterator = _.identity
   predicate = (x) -> x?
   sentinel = undefined
 ) ->
@@ -148,7 +145,7 @@ dsl.wrap = (sql) ->
 # comparisons: eq, ne, lt, lte, gt, gte
 
 prototypes.comparison = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     "#{normalizeSql @_left, escape} #{@_operator} #{normalizeSql @_right, escape}"
   params: ->
     normalizeParams(@_left).concat normalizeParams(@_right)
@@ -173,7 +170,7 @@ comparisonTable = [
 # null
 
 prototypes.null = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     "#{normalizeSql(@_operand, escape)} IS #{if @_isNull then '' else 'NOT '}NULL"
   params: ->
     normalizeParams(@_operand)
@@ -187,7 +184,7 @@ dsl.null = modifiers.$null = (operand, isNull = true) ->
 # negation
 
 prototypes.not = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     # remove double negation
     if isNegation @_inner
       ignoreWrap = true
@@ -209,7 +206,7 @@ dsl.not = (inner) ->
 # exists
 
 prototypes.exists = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     "EXISTS #{normalizeSql(@_operand, escape)}"
   params: ->
     @_operand.params()
@@ -223,7 +220,7 @@ dsl.exists = (operand) ->
 # subquery expressions: in, nin, any, neAny, ...
 
 prototypes.subquery = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     sql = ""
     sql += normalizeSql @_left, escape
     sql += " #{@_operator} "
@@ -294,7 +291,7 @@ isAnd = (x) ->
   prototypes.and.isPrototypeOf x
 
 prototypes.and = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     parts = @_operands.map (x) ->
       # we don't have to wrap ANDs inside an AND
       ignoreWrap = isAnd x
@@ -322,7 +319,7 @@ isOr = (x) ->
   prototypes.or.isPrototypeOf x
 
 prototypes.or = _.create prototypes.base,
-  sql: (escape = identity) ->
+  sql: (escape = _.identity) ->
     parts = @_operands.map (x) ->
       # we don't have to wrap ORs inside an OR
       ignoreWrap = isOr x
