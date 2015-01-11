@@ -44,11 +44,6 @@ helper.some = some = (
     i++
   return sentinel
 
-# flatten array one level
-
-helper.flatten = flatten = (array) ->
-  [].concat array...
-
 # sql-fragments are treated differently in many situations
 helper.implementsSqlFragmentInterface = implementsSqlFragmentInterface = (value) ->
   value? and 'function' is typeof value.sql and 'function' is typeof value.params
@@ -109,7 +104,7 @@ prototypes.rawSql = _.create prototypes.base,
         "?"
 
   params: ->
-    flatten @_params
+    _.flatten @_params
   dontWrap: true
 
 rawSql = (sql, params = []) ->
@@ -304,7 +299,7 @@ prototypes.and = _.create prototypes.base,
     return params
 
 dsl.and = (args...) ->
-  operands = flatten args
+  operands = _.flatten args
   if operands.length is 0
     throw new Error "`and` needs at least one operand"
   operands.forEach (x) ->
@@ -332,7 +327,7 @@ prototypes.or = _.create prototypes.base,
     return params
 
 dsl.or = (args...) ->
-  operands = flatten args
+  operands = _.flatten args
   if operands.length is 0
     throw new Error "`or` needs at least one operand"
   operands.forEach (x) ->
